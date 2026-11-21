@@ -6,7 +6,7 @@ const envAdmins = (process.env.BOT_ADMIN_NUMBERS || '').split(',').map(x => x.re
 export const config = {
   name: local?.botName || process.env.BOT_NAME || 'Vizzabot V5',
   prefix: local?.prefix || process.env.BOT_PREFIX || '!',
-  ownerName: local?.ownerName || process.env.OWNER_NAME || '',
+  ownerName: local?.ownerName || process.env.OWNER_NAME || '𝖛𝖍𝖘',
   owners: local ? local.ownerNumbers : envOwners,
   botAdmins: local ? local.botAdmins : envAdmins,
   allowGroups: process.env.ALLOW_GROUPS !== 'false',
