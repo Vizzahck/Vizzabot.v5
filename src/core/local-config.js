@@ -27,5 +27,7 @@ export function readLocalConfig(path = 'config.local.json') {
   if (simi !== 0 && simi !== 1) throw new Error('features.simi deve ser 0 ou 1');
   const imageLinks = data.features?.imageLinks ?? 0;
   if (imageLinks !== 0 && imageLinks !== 1) throw new Error('features.imageLinks deve ser 0 ou 1');
-  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1, imageLinksEnabled: imageLinks === 1 };
+  const monitor = data.features?.activityMonitor ?? 1;
+  if (monitor !== 0 && monitor !== 1) throw new Error('features.activityMonitor deve ser 0 ou 1');
+  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1, imageLinksEnabled: imageLinks === 1, activityMonitor: monitor === 1 };
 }
