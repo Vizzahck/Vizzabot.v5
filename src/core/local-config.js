@@ -23,5 +23,7 @@ export function readLocalConfig(path = 'config.local.json') {
   if (bot === null || typeof bot !== 'object' || Array.isArray(bot)) throw new Error('bot precisa ser um objeto');
   const botName = typeof bot.name === 'string' && bot.name.trim() ? bot.name.trim().slice(0, 80) : undefined;
   const prefix = typeof bot.prefix === 'string' && bot.prefix.trim() && bot.prefix.length <= 5 ? bot.prefix : undefined;
-  return { ownerName, ownerNumbers, botAdmins, botName, prefix };
+  const simi = data.features?.simi ?? 0;
+  if (simi !== 0 && simi !== 1) throw new Error('features.simi deve ser 0 ou 1');
+  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1 };
 }
