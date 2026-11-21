@@ -11,6 +11,7 @@ export const config = {
   botAdmins: local ? local.botAdmins : envAdmins,
   allowGroups: process.env.ALLOW_GROUPS !== 'false',
   allowPrivate: process.env.ALLOW_PRIVATE !== 'false',
+  simiEnabled: local?.simiEnabled ?? (process.env.SIMI_ENABLED === '1'),
   logLevel: process.env.LOG_LEVEL || 'info'
 };
 if (!config.owners.length) console.warn('AVISO: nenhum número de proprietário configurado. Comandos exclusivos ficarão indisponíveis.');
