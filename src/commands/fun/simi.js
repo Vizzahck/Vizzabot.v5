@@ -1,0 +1,1 @@
+export default { name: 'simi', category: 'Brincadeiras', description: 'Consulta se o modo conversa está ativo (configure 0/1 localmente)', async execute(ctx) { await ctx.reply('🤖 Simi está *'+(ctx.config.simiEnabled ? 'ATIVADO (1)' : 'DESATIVADO (0)')+'*. Altere features.simi em config.local.json e reinicie.'); } };
