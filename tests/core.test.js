@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { parseCommand, extractText } from '../src/core/parser.js';
+import { createRegistry } from '../src/core/registry.js';
+import { isOwner } from '../src/core/permissions.js';
+test('parser reconhece prefixo e argumentos', () => assert.deepEqual(parseCommand('!ping agora'), { name: 'ping', args: ['agora'] }));
+test('parser ignora mensagens comuns', () => assert.equal(parseCommand('olá'), null));
+test('extrai legendas', () => assert.equal(extractText({ imageMessage: { caption: '!menu' } }), '!menu'));
+test('registro encontra comando', () => assert.equal(createRegistry([{ name: 'ping', execute() {} }]).get('ping').name, 'ping'));
+test('proprietário por número', () => assert.equal(isOwner('5598999999999@s.whatsapp.net', ['5598999999999']), true));
