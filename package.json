@@ -1,0 +1,22 @@
+{
+  "name": "vizzabot-v5",
+  "version": "5.0.0-alpha.1",
+  "private": true,
+  "description": "Base modular e independente para bot WhatsApp",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test",
+    "check": "node --check src/index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.0",
+    "dotenv": "^16.4.5",
+    "pino": "^9.0.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
