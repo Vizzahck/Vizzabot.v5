@@ -6,9 +6,9 @@ export default {
   async execute(ctx) {
     const message = ctx.msg.message || {};
     const quoted = message.extendedTextMessage?.contextInfo?.quotedMessage || {};
-    const source = message.imageMessage ? ctx.msg : quoted.imageMessage ? {
-      key: ctx.msg.key, message: quoted
-    } : null;
+    const source = message.imageMessage ? ctx.msg : quoted.imageMessage
+      ? { key: { remoteJid: ctx.chat, id: message.extendedTextMessage?.contextInfo?.stanzaId, participant: message.extendedTextMessage?.contextInfo?.participant }, message: quoted }
+      : null;
     if (!source) return ctx.reply('Envie uma foto com !sticker na legenda ou responda uma foto com !sticker.');
     const image = source.message.imageMessage;
     if (image.fileLength && Number(image.fileLength) > MAX_BYTES) return ctx.reply('Imagem muito grande (máximo 8 MB).');
