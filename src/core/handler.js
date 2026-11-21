@@ -3,6 +3,7 @@ import { isOwner, isBotAdmin } from './permissions.js';
 import { moderateMessage } from './moderation.js';
 import { createRateLimiter } from './rate-limit.js';
 import { isBotGenerated } from './outgoing.js';
+import { simiReply } from './simi.js';
 const limiter = createRateLimiter({ windowMs: 5000, max: 4 });
 export async function handleMessage(sock, msg, registry, config, logger, store, sentIds = new Set()) {
   if (!msg?.message || msg.key?.remoteJid === 'status@broadcast' || isBotGenerated(msg, sentIds)) return;
@@ -12,7 +13,13 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   if ((group && !config.allowGroups) || (!group && !config.allowPrivate)) return;
   if (await moderateMessage(sock, msg, store, logger, config)) return;
   const parsed = parseCommand(extractText(msg.message), config.prefix);
-  if (!parsed) return;
+  if (!parsed) {
+    if (config.simiEnabled && !msg.key.fromMe && !group) {
+      const answer = simiReply(extractText(msg.message), config.name);
+      if (answer) await sock.sendMessage(chat, { text: answer }, { quoted: msg });
+    }
+    return;
+  }
   const command = registry.get(parsed.name);
   if (!command) return;
   // WhatsApp sets remoteJid to the chat for self-sent messages. Use the
