@@ -9,6 +9,10 @@ export default {
     const target = ctx.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
     if (!target) return ctx.reply('Mencione o participante: !ban @usuario');
     if (target === ctx.sender || target === ctx.sock.user?.id) return ctx.reply('Não posso remover esse participante.');
+    const metadata = await ctx.sock.groupMetadata(ctx.chat);
+    const member = metadata.participants?.find(p => p.id === target);
+    if (!member) return ctx.reply('Participante não encontrado no grupo.');
+    if (member.admin) return ctx.reply('Não removo outros administradores.');
     await ctx.sock.groupParticipantsUpdate(ctx.chat, [target], 'remove');
     await ctx.reply('✅ Solicitação de remoção enviada.');
   }
