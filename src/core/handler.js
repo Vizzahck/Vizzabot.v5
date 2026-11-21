@@ -1,6 +1,8 @@
 import { extractText, parseCommand } from './parser.js';
 import { isOwner } from './permissions.js';
 import { moderateMessage } from './moderation.js';
+import { createRateLimiter } from './rate-limit.js';
+const limiter = createRateLimiter({ windowMs: 5000, max: 4 });
 export async function handleMessage(sock, msg, registry, config, logger, store) {
   if (!msg?.message || msg.key?.fromMe || msg.key?.remoteJid === 'status@broadcast') return;
   const chat = msg.key.remoteJid;
@@ -15,6 +17,7 @@ export async function handleMessage(sock, msg, registry, config, logger, store) 
   const sender = group ? msg.key.participant : chat;
   if (!sender) return;
   const owner = isOwner(sender, config.owners);
+  if (!owner && !limiter.allow(sender)) return;
   const reply = async text => sock.sendMessage(chat, { text }, { quoted: msg });
   if (command.ownerOnly && !owner) return reply('⛔ Comando exclusivo do proprietário.');
   try {
