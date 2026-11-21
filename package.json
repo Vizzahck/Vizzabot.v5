@@ -1,11 +1,11 @@
 {
   "name": "vizzabot-v5",
-  "version": "5.2.0-alpha.1",
+  "version": "5.2.1-alpha.1",
   "private": true,
   "description": "Bot WhatsApp modular com pareamento por número",
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "start": "node src/index.js",
@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.0",
-    "better-sqlite3": "^11.8.1",
     "dotenv": "^16.4.5",
     "pino": "^9.0.0",
     "sharp": "^0.33.5"
