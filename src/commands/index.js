@@ -1,4 +1,5 @@
 import menu from './general/menu.js';
+import comandos from './general/comandos.js';
 import ping from './general/ping.js';
 import sobre from './general/sobre.js';
 import perfil from './general/perfil.js';
@@ -7,4 +8,8 @@ import sticker from './stickers/sticker.js';
 import antilink from './admin/antilink.js';
 import ban from './admin/ban.js';
 import boasvindas from './admin/boasvindas.js';
-export const commands = [menu, ping, sobre, perfil, sticker, antilink, ban, boasvindas, status];
+import avisos from './admin/avisos.js';
+import saldo from './rpg/saldo.js';
+import diario from './rpg/diario.js';
+import ranking from './rpg/ranking.js';
+export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status];
