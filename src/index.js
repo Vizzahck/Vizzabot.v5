@@ -29,12 +29,20 @@ async function connect() {
   const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false });
   currentSocket = sock;
   const sentIds = trackOutgoingMessages(sock);
+  const seenMessageIds = new Set();
   let pairingRequested = false;
   let pairingCodeShown = false;
   sock.ev.on('creds.update', () => saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')));
   sock.ev.on('messages.upsert', ({ messages, type }) => {
-    if (type !== 'notify') return;
+    if (type !== 'notify' && type !== 'append') return;
     for (const msg of messages) {
+      if (type === 'append' && !msg.key?.fromMe) continue;
+      const identity = [msg.key?.remoteJid, msg.key?.participant, msg.key?.id].join(':');
+      if (msg.key?.id && seenMessageIds.has(identity)) continue;
+      if (msg.key?.id) {
+        seenMessageIds.add(identity);
+        if (seenMessageIds.size > 2000) seenMessageIds.delete(seenMessageIds.values().next().value);
+      }
       handleMessage(sock, msg, registry, config, logger, store, sentIds).catch(err => logger.error({ err }, 'Falha ao tratar mensagem'));
     }
   });
