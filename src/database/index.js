@@ -18,7 +18,8 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
       last_daily INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
-    CREATE TABLE IF NOT EXISTS mining_cooldowns (jid TEXT PRIMARY KEY, last_mine INTEGER NOT NULL DEFAULT 0);\n    CREATE TABLE IF NOT EXISTS warnings (
+    CREATE TABLE IF NOT EXISTS mining_cooldowns (jid TEXT PRIMARY KEY, last_mine INTEGER NOT NULL DEFAULT 0);
+    CREATE TABLE IF NOT EXISTS warnings (
       group_jid TEXT NOT NULL,
       user_jid TEXT NOT NULL,
       count INTEGER NOT NULL DEFAULT 0,
@@ -62,7 +63,32 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
         throw err;
       }
     },
-    mine(jid, now, amount, cooldown) {\n      if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Valor inválido');\n      db.exec('BEGIN IMMEDIATE');\n      try {\n        insertUser.run(jid);\n        const last = db.prepare('SELECT last_mine FROM mining_cooldowns WHERE jid=?').get(jid)?.last_mine || 0;\n        const remainingMs = last ? Math.max(0, cooldown - (now-last)) : 0;\n        if (remainingMs) { db.exec('COMMIT'); return {ok:false,remainingMs}; }\n        db.prepare('INSERT INTO mining_cooldowns(jid,last_mine) VALUES (?,?) ON CONFLICT(jid) DO UPDATE SET last_mine=excluded.last_mine').run(jid,now);\n        db.prepare('UPDATE users SET coins=coins+?,xp=xp+5 WHERE jid=?').run(amount,jid);\n        const coins=getUser.get(jid).coins;\n        db.exec('COMMIT');return {ok:true,coins};\n      } catch(err) { db.exec('ROLLBACK'); throw err; }\n    },\n    transfer(from,to,amount) {\n      if (from===to || !Number.isSafeInteger(amount) || amount<=0 || amount>1000000) return {ok:false,reason:'invalid'};\n      db.exec('BEGIN IMMEDIATE');\n      try {\n        insertUser.run(from);insertUser.run(to);\n        const debit=db.prepare('UPDATE users SET coins=coins-? WHERE jid=? AND coins>=?').run(amount,from,amount);\n        if(!debit.changes){db.exec('COMMIT');return {ok:false,reason:'funds'};}\n        db.prepare('UPDATE users SET coins=coins+? WHERE jid=?').run(amount,to);\n        db.exec('COMMIT');return {ok:true,coins:getUser.get(from).coins};\n      }catch(err){db.exec('ROLLBACK');throw err;}\n    },\n    topUsers(limit = 10) { return getTop.all(Math.min(50, Math.max(1, limit))); },
+    mine(jid, now, amount, cooldown) {
+      if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error('Valor inválido');
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        insertUser.run(jid);
+        const last = db.prepare('SELECT last_mine FROM mining_cooldowns WHERE jid=?').get(jid)?.last_mine || 0;
+        const remainingMs = last ? Math.max(0, cooldown - (now-last)) : 0;
+        if (remainingMs) { db.exec('COMMIT'); return {ok:false,remainingMs}; }
+        db.prepare('INSERT INTO mining_cooldowns(jid,last_mine) VALUES (?,?) ON CONFLICT(jid) DO UPDATE SET last_mine=excluded.last_mine').run(jid,now);
+        db.prepare('UPDATE users SET coins=coins+?,xp=xp+5 WHERE jid=?').run(amount,jid);
+        const coins=getUser.get(jid).coins;
+        db.exec('COMMIT');return {ok:true,coins};
+      } catch(err) { db.exec('ROLLBACK'); throw err; }
+    },
+    transfer(from,to,amount) {
+      if (from===to || !Number.isSafeInteger(amount) || amount<=0 || amount>1000000) return {ok:false,reason:'invalid'};
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        insertUser.run(from);insertUser.run(to);
+        const debit=db.prepare('UPDATE users SET coins=coins-? WHERE jid=? AND coins>=?').run(amount,from,amount);
+        if(!debit.changes){db.exec('COMMIT');return {ok:false,reason:'funds'};}
+        db.prepare('UPDATE users SET coins=coins+? WHERE jid=?').run(amount,to);
+        db.exec('COMMIT');return {ok:true,coins:getUser.get(from).coins};
+      }catch(err){db.exec('ROLLBACK');throw err;}
+    },
+    topUsers(limit = 10) { return getTop.all(Math.min(50, Math.max(1, limit))); },
     warnings(group, user) { return getWarnings.get(group, user)?.count || 0; },
     warn(group, user) {
       incrementWarning.run(group, user);
