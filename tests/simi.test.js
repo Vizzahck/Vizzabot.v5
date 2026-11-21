@@ -1,0 +1,1 @@
+import test from 'node:test'; import assert from 'node:assert/strict'; import { simiReply } from '../src/core/simi.js'; test('simi só responde frases conhecidas',()=>{assert.ok(simiReply('oi'));assert.equal(simiReply('texto aleatório que não reconhece'),null);});
