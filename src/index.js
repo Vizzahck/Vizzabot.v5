@@ -5,8 +5,11 @@ import { config } from './config.js';
 import { commands } from './commands/index.js';
 import { createRegistry } from './core/registry.js';
 import { handleMessage } from './core/handler.js';
+import { handleGroupParticipants } from './core/welcome.js';
+import { openDatabase } from './database/index.js';
 const logger = P({ level: config.logLevel });
 const registry = createRegistry(commands);
+const store = openDatabase();
 let reconnectTimer;
 async function connect() {
   const { state, saveCreds } = await useMultiFileAuthState('./sessions/whatsapp');
@@ -15,15 +18,16 @@ async function connect() {
   sock.ev.on('creds.update', saveCreds);
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
-    for (const msg of messages) await handleMessage(sock, msg, registry, config, logger);
+    for (const msg of messages) await handleMessage(sock, msg, registry, config, logger, store);
   });
+  sock.ev.on('group-participants.update', event => handleGroupParticipants(sock, event, store, logger));
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
     if (qr) { console.log('Escaneie o QR no WhatsApp > Aparelhos conectados:'); qrcode.generate(qr, { small: true }); }
     if (connection === 'open') logger.info('Vizzabot V5 conectado');
     if (connection === 'close') {
       const status = lastDisconnect?.error?.output?.statusCode;
       if (status === DisconnectReason.loggedOut) {
-        logger.error('Sessão encerrada. Faça novo pareamento; verifique a pasta sessions.');
+        logger.error('Sessão encerrada. Faça novo pareamento.');
       } else {
         logger.warn({ status }, 'Desconectado; tentando novamente em 5s');
         clearTimeout(reconnectTimer);
