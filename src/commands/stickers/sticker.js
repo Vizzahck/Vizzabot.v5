@@ -1,4 +1,3 @@
-import sharp from 'sharp';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 const MAX_BYTES = 8 * 1024 * 1024;
 export default {
@@ -14,6 +13,13 @@ export default {
     if (image.fileLength && Number(image.fileLength) > MAX_BYTES) return ctx.reply('Imagem muito grande (máximo 8 MB).');
     const buffer = await downloadMediaMessage(source, 'buffer', {}, { logger: ctx.logger, reuploadRequest: ctx.sock.updateMediaMessage });
     if (buffer.length > MAX_BYTES) return ctx.reply('Imagem muito grande (máximo 8 MB).');
+    let sharp;
+    try {
+      ({ default: sharp } = await import('sharp'));
+    } catch (error) {
+      ctx.logger.warn({ err: error }, 'Sharp indisponível no ambiente atual');
+      return ctx.reply('⚠️ Figurinhas indisponíveis neste Termux: processador de imagens não compatível. Os demais comandos continuam funcionando.');
+    }
     const webp = await sharp(buffer, { limitInputPixels: 25_000_000 })
       .rotate().resize(512,512,{ fit:'contain',background:{r:0,g:0,b:0,alpha:0} }).webp({ quality: 80 }).toBuffer();
     await ctx.sock.sendMessage(ctx.chat, { sticker: webp }, { quoted: ctx.msg });
