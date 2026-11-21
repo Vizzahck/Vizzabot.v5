@@ -1,18 +1,16 @@
-# Plano de evolução
+# Roteiro Vizzabot V5
 
-## V5 alpha (base)
-- Conexão Baileys, QR, reconexão simples
-- Registro modular de comandos
-- Menu, ping, sobre e status de proprietário
-- Configuração por variáveis de ambiente
-- Testes unitários básicos
+## Implementado em código (ainda sem validação real)
+- Conexão Baileys e QR
+- Comandos modulares, permissões e menu
+- SQLite local para usuários, grupos e avisos
+- Figurinhas de imagens estáticas
+- Antilink opcional, boas-vindas e comando de remoção
 
-## Próxima fase (não implementada)
-- Validar conexão real e fixar versões via lockfile
-- SQLite, migrações e backups
-- Moderação e antispam
-- Figurinhas estáticas/animadas
-- RPG e economia
-- IA opcional com limites de uso
-- Painel web com autenticação e auditoria
-- CI e testes de integração
+## Próximas etapas
+- Instalar dependências e executar testes em ambiente real
+- Corrigir eventuais incompatibilidades Baileys/LID e reconexão
+- Figurinhas animadas e packs
+- Moderação avançada, registros e limites
+- RPG, economia, IA e painel web
+- Backups e pipeline CI
