@@ -18,4 +18,6 @@ import ship from './fun/ship.js';
 import escolher from './fun/escolher.js';
 import ball from './fun/8ball.js';
 import simi from './fun/simi.js';
-export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi];
+import desligar from './owner/desligar.js';
+import { categoryMenus } from './general/menus.js';
+export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, ...categoryMenus];
