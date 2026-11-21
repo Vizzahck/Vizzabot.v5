@@ -1,0 +1,13 @@
+{
+  "owner": {
+    "name": "Seu nome",
+    "numbers": [
+      "5598999999999"
+    ]
+  },
+  "botAdmins": [],
+  "bot": {
+    "name": "Vizzabot V5",
+    "prefix": "!"
+  }
+}
