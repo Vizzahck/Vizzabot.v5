@@ -1,7 +1,8 @@
 import { groupRoles } from './group.js';
+import { isBotAdmin } from './permissions.js';
 import { extractText } from './parser.js';
 const linkPattern = /(?:https?:\/\/|www\.|chat\.whatsapp\.com\/)[^\s]+/i;
-export async function moderateMessage(sock, msg, store, logger) {
+export async function moderateMessage(sock, msg, store, logger, config = {}) {
   const chat = msg.key?.remoteJid;
   if (!chat?.endsWith('@g.us') || !store.group(chat).antilink || msg.key.fromMe) return false;
   const sender = msg.key.participant;
@@ -9,7 +10,7 @@ export async function moderateMessage(sock, msg, store, logger) {
   const text = extractText(msg.message);
   if (!linkPattern.test(text)) return false;
   try {
-    const roles = await groupRoles(sock, chat, sender);
+    const roles = await groupRoles(sock, chat, sender, false, isBotAdmin(sender, config.botAdmins, config.owners));
     if (roles.admin || !roles.botAdmin) return false;
     await sock.sendMessage(chat, { delete: msg.key });
     const count = store.warn(chat, sender);
