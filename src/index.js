@@ -1,6 +1,6 @@
 import makeWASocket, { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 import P from 'pino';
-import qrcode from 'qrcode-terminal';
+import { askPairingNumber, formatPairingCode } from './core/pairing.js';
 import { config } from './config.js';
 import { commands } from './commands/index.js';
 import { createRegistry } from './core/registry.js';
@@ -20,6 +20,8 @@ async function connect() {
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false });
   currentSocket = sock;
+  let pairingRequested = false;
+  let pairingCodeShown = false;
   sock.ev.on('creds.update', () => saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')));
   sock.ev.on('messages.upsert', ({ messages, type }) => {
     if (type !== 'notify') return;
@@ -31,12 +33,27 @@ async function connect() {
     handleGroupParticipants(sock, event, store, logger).catch(err => logger.error({ err }, 'Falha em evento de grupo'));
   });
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
-    if (qr) {
-      console.log('Escaneie o QR no WhatsApp > Aparelhos conectados:');
-      qrcode.generate(qr, { small: true });
+    if (!state.creds.registered && qr && !pairingRequested && !stopping) {
+      pairingRequested = true;
+      void (async () => {
+        try {
+          const phone = await askPairingNumber();
+          const code = await sock.requestPairingCode(phone);
+          pairingCodeShown = true;
+          console.log('\n========================================');
+          console.log('CÓDIGO DE VINCULAÇÃO: ' + formatPairingCode(code));
+          console.log('WhatsApp > Aparelhos conectados > Conectar aparelho >');
+          console.log('Conectar com número de telefone > Digite o código acima.');
+          console.log('========================================\n');
+        } catch (err) {
+          logger.error({ err }, 'Falha ao solicitar código de pareamento');
+          console.error('Não foi possível gerar o código. Verifique o número e reinicie o bot.');
+        }
+      })();
     }
     if (connection === 'open') {
       reconnectAttempts = 0;
+      if (pairingCodeShown) console.log('WhatsApp vinculado com sucesso.');
       logger.info('Vizzabot V5 conectado');
     }
     if (connection === 'close' && !stopping) {
