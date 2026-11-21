@@ -24,4 +24,5 @@ import linkimg from './general/linkimg.js';
 import { groupTools } from './admin/group-tools.js';
 import { v4Fun, sorteio } from './fun/v4-fun.js';
 import { economyTools } from './rpg/economy-tools.js';
-export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools];
+import { gameCommands } from './games/two-player.js';
+export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands];
