@@ -1,27 +1,46 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
+import { spawn } from 'node:child_process';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 const MAX_BYTES = 8 * 1024 * 1024;
+
+async function ffmpegWebp(buffer) {
+  const dir = await mkdtemp(join(tmpdir(), 'vizzabot-sticker-'));
+  const input = join(dir, 'input.jpg'), output = join(dir, 'output.webp');
+  try {
+    await writeFile(input, buffer);
+    await new Promise((resolve, reject) => {
+      const proc = spawn('ffmpeg', ['-hide_banner','-loglevel','error','-y','-i',input,'-frames:v','1','-vf','scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000','-c:v','libwebp','-lossless','0','-q:v','75',output], { stdio: 'ignore' });
+      proc.once('error', reject);
+      proc.once('close', code => code === 0 ? resolve() : reject(new Error('ffmpeg retornou código '+code)));
+    });
+    return await readFile(output);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+}
+
 export default {
-  name: 'sticker', aliases: ['s','figurinha'], category: 'Figurinhas', description: 'Converte foto em figurinha',
+  name: 'sticker', aliases: ['s','figurinha'], category: 'Figurinhas', description: 'Cria figurinha respondendo a uma foto ou com !s na legenda',
   async execute(ctx) {
     const message = ctx.msg.message || {};
-    const quoted = message.extendedTextMessage?.contextInfo?.quotedMessage || {};
-    const source = message.imageMessage ? ctx.msg : quoted.imageMessage
-      ? { key: { remoteJid: ctx.chat, id: message.extendedTextMessage?.contextInfo?.stanzaId, participant: message.extendedTextMessage?.contextInfo?.participant }, message: quoted }
+    const base = message.ephemeralMessage?.message || message;
+    const quoted = base.extendedTextMessage?.contextInfo?.quotedMessage || base.imageMessage?.contextInfo?.quotedMessage || {};
+    const source = base.imageMessage ? { ...ctx.msg, message: base } : quoted.imageMessage
+      ? { key: { remoteJid: ctx.chat, id: base.extendedTextMessage?.contextInfo?.stanzaId, participant: base.extendedTextMessage?.contextInfo?.participant }, message: quoted }
       : null;
-    if (!source) return ctx.reply('Envie uma foto com !sticker na legenda ou responda uma foto com !sticker.');
-    const image = source.message.imageMessage;
-    if (image.fileLength && Number(image.fileLength) > MAX_BYTES) return ctx.reply('Imagem muito grande (máximo 8 MB).');
+    if (!source) return ctx.reply('📸 Responda a uma foto com !s ou envie uma foto com !s na legenda.');
+    if (source.message.imageMessage.fileLength && Number(source.message.imageMessage.fileLength) > MAX_BYTES) return ctx.reply('Imagem muito grande (máximo 8 MB).');
     const buffer = await downloadMediaMessage(source, 'buffer', {}, { logger: ctx.logger, reuploadRequest: ctx.sock.updateMediaMessage });
     if (buffer.length > MAX_BYTES) return ctx.reply('Imagem muito grande (máximo 8 MB).');
-    let sharp;
+    let webp;
     try {
-      ({ default: sharp } = await import('sharp'));
-    } catch (error) {
-      ctx.logger.warn({ err: error }, 'Sharp indisponível no ambiente atual');
-      return ctx.reply('⚠️ Figurinhas indisponíveis neste Termux: processador de imagens não compatível. Os demais comandos continuam funcionando.');
+      const { default: sharp } = await import('sharp');
+      webp = await sharp(buffer, { limitInputPixels: 25_000_000 }).rotate().resize(512,512,{fit:'contain',background:{r:0,g:0,b:0,alpha:0}}).webp({quality:80}).toBuffer();
+    } catch (err) {
+      ctx.logger.info({ err }, 'Sharp indisponível; tentando ffmpeg');
+      try { webp = await ffmpegWebp(buffer); }
+      catch (error) { ctx.logger.warn({ err: error }, 'Falha ao gerar figurinha'); return ctx.reply('⚠️ Não consegui converter a foto. No Termux instale: pkg install ffmpeg -y'); }
     }
-    const webp = await sharp(buffer, { limitInputPixels: 25_000_000 })
-      .rotate().resize(512,512,{ fit:'contain',background:{r:0,g:0,b:0,alpha:0} }).webp({ quality: 80 }).toBuffer();
     await ctx.sock.sendMessage(ctx.chat, { sticker: webp }, { quoted: ctx.msg });
   }
 };
