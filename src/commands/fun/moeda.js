@@ -1,0 +1,1 @@
+export default { name: 'moeda', category: 'Brincadeiras', description: 'Cara ou coroa', async execute(ctx) { await ctx.reply('🪙 Deu *' + (Math.random() < 0.5 ? 'CARA' : 'COROA') + '*!'); } };
