@@ -2,43 +2,31 @@
 
 Bot WhatsApp modular, reescrito de forma independente em Node.js.
 
-**Versão:** 5.1.0-alpha.1. Ainda não testado com uma conexão real ao WhatsApp.
+**Versão:** 5.2.0-alpha.1. Ainda não testado com uma conexão real ao WhatsApp.
 
-## Requisitos e instalação
-Node.js 20+ e npm. A dependência SQLite nativa pode exigir ferramentas de compilação em algumas plataformas.
+## Instalação
+Requer Node.js 20+ e npm. No Android, consulte [o guia Termux](termux/README.md).
 
 ```bash
 git clone https://github.com/Vizzahck/Vizzabot.v5.git
 cd Vizzabot.v5
 cp .env.example .env
-# Edite .env: configure OWNER_NUMBERS com DDI e só dígitos
 npm install
+npm run check
 npm test
 npm start
 ```
 
-Escaneie o QR Code em WhatsApp > Aparelhos conectados.
+**Pareamento por número, sem QR:** ao iniciar sem sessão, informe seu número com DDI e DDD no terminal. O bot solicitará um código de vinculação. No WhatsApp, abra Aparelhos conectados > Conectar aparelho > Conectar com número de telefone e digite o código. Alternativamente, configure `PAIRING_NUMBER` no `.env`. Não compartilhe esse código.
 
 ## Comandos
-- `!menu`, `!ping`, `!sobre`, `!perfil`
-- `!sticker` (ou `!s`) — imagem enviada ou citada
-- `!antilink on/off` — administradores de grupo
-- `!boasvindas on/off` — administradores de grupo
-- `!ban @usuario` — administradores; bot também deve ser admin
-- `!status` — proprietário
+- Gerais: `!menu`, `!comandos`, `!ping`, `!sobre`, `!perfil`
+- Figurinhas: `!sticker`, `!s`
+- Grupos: `!antilink on/off`, `!boasvindas on/off`, `!ban @usuario`, `!avisos`
+- Economia: `!saldo`, `!diario`, `!ranking`
+- Proprietário: `!status`
 
-Detalhes em [docs/FEATURES.md](docs/FEATURES.md).
+Consulte [funcionalidades](docs/FEATURES.md) e [segurança](docs/SECURITY.md).
 
-## Organização
-- `src/core/` — processamento e moderação
-- `src/commands/` — comandos por categoria
-- `src/database/` — SQLite local
-- `tests/` — testes unitários
-- `docs/` — documentação
-
-## Segurança e limites
-- Nunca publique `.env`, `sessions/`, `data/` ou logs.
-- Antilink é desativado por padrão e depende de permissões de administrador.
-- Baileys é não oficial; mudanças do WhatsApp podem interromper a conexão.
-- Para produção: revisar compatibilidade LID, validar a sessão, implementar backups, testes de integração e observabilidade.
-- Não copie código do V4 sem revisar os direitos e avisos de licença aplicáveis.
+## Limitações
+Baileys é não oficial. A conexão e as permissões de grupo precisam de testes reais. Nunca publique `.env`, `sessions/`, `data/` ou logs.
