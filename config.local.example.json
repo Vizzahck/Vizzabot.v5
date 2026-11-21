@@ -12,6 +12,7 @@
   },
   "features": {
     "simi": 0,
-    "imageLinks": 0
+    "imageLinks": 0,
+    "activityMonitor": 1
   }
 }
