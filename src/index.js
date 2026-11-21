@@ -14,9 +14,16 @@ let reconnectTimer;
 let reconnectAttempts = 0;
 let currentSocket;
 let stopping = false;
+let pairingNumber;
+let pairingAttempt = 0;
+let pairingSessionFailed = false;
 async function connect() {
   if (stopping) return;
   const { state, saveCreds } = await useMultiFileAuthState('./sessions/whatsapp');
+  if (!state.creds.registered && !pairingNumber) {
+    pairingNumber = await askPairingNumber();
+    console.log('Número de pareamento: ' + pairingNumber.slice(0, 4) + '*****' + pairingNumber.slice(-2));
+  }
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false });
   currentSocket = sock;
@@ -33,33 +40,41 @@ async function connect() {
     handleGroupParticipants(sock, event, store, logger).catch(err => logger.error({ err }, 'Falha em evento de grupo'));
   });
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
-    if (!state.creds.registered && qr && !pairingRequested && !stopping) {
+    if (!state.creds.registered && qr && !pairingRequested && !stopping && !pairingSessionFailed) {
       pairingRequested = true;
       void (async () => {
         try {
-          const phone = await askPairingNumber();
-          const code = await sock.requestPairingCode(phone);
+          // Aguardar brevemente a inicialização do socket antes de solicitar o código.
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          if (stopping || currentSocket !== sock || pairingSessionFailed) return;
+          const code = await sock.requestPairingCode(pairingNumber);
+          if (stopping || currentSocket !== sock || pairingSessionFailed) return;
           pairingCodeShown = true;
+          pairingAttempt += 1;
           console.log('\n========================================');
-          console.log('CÓDIGO DE VINCULAÇÃO: ' + formatPairingCode(code));
+          console.log('NOVO CÓDIGO DE VINCULAÇÃO: ' + formatPairingCode(code));
           console.log('WhatsApp > Aparelhos conectados > Conectar aparelho >');
-          console.log('Conectar com número de telefone > Digite o código acima.');
+          console.log('Conectar com número de telefone > Digite o código NOVO.');
+          console.log('Não compartilhe o código com ninguém.');
           console.log('========================================\n');
         } catch (err) {
           logger.error({ err }, 'Falha ao solicitar código de pareamento');
-          console.error('Não foi possível gerar o código. Verifique o número e reinicie o bot.');
+          console.error('Não foi possível gerar o código. Confira a conexão e reinicie.');
         }
       })();
     }
     if (connection === 'open') {
       reconnectAttempts = 0;
+      pairingSessionFailed = false;
       if (pairingCodeShown) console.log('WhatsApp vinculado com sucesso.');
       logger.info('Vizzabot V5 conectado');
     }
     if (connection === 'close' && !stopping) {
       const status = lastDisconnect?.error?.output?.statusCode;
-      if (status === DisconnectReason.loggedOut) {
-        logger.error('Sessão encerrada. Faça novo pareamento; verifique a pasta sessions.');
+      if (status === DisconnectReason.loggedOut || status === DisconnectReason.badSession) {
+        pairingSessionFailed = true;
+        logger.error({ status }, 'Sessão recusada ou encerrada. Pare o bot e use o comando de reiniciar pareamento (termux/reset-pairing.sh).');
+        console.error('Pareamento não concluído. Para solicitar outro código, execute: bash termux/reset-pairing.sh');
         return;
       }
       const delay = Math.min(60000, 5000 * (2 ** Math.min(reconnectAttempts++, 4)));
