@@ -1,5 +1,10 @@
 import menu from './general/menu.js';
 import ping from './general/ping.js';
 import sobre from './general/sobre.js';
+import perfil from './general/perfil.js';
 import status from './owner/status.js';
-export const commands = [menu, ping, sobre, status];
+import sticker from './stickers/sticker.js';
+import antilink from './admin/antilink.js';
+import ban from './admin/ban.js';
+import boasvindas from './admin/boasvindas.js';
+export const commands = [menu, ping, sobre, perfil, sticker, antilink, ban, boasvindas, status];
