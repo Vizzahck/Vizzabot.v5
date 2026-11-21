@@ -25,5 +25,7 @@ export function readLocalConfig(path = 'config.local.json') {
   const prefix = typeof bot.prefix === 'string' && bot.prefix.trim() && bot.prefix.length <= 5 ? bot.prefix : undefined;
   const simi = data.features?.simi ?? 0;
   if (simi !== 0 && simi !== 1) throw new Error('features.simi deve ser 0 ou 1');
-  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1 };
+  const imageLinks = data.features?.imageLinks ?? 0;
+  if (imageLinks !== 0 && imageLinks !== 1) throw new Error('features.imageLinks deve ser 0 ou 1');
+  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1, imageLinksEnabled: imageLinks === 1 };
 }
