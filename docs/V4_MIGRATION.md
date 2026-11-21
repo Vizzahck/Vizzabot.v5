@@ -39,3 +39,8 @@ O arquivo `index.js` contém centenas de ramificações `case`, incluindo aliase
 - Os medidores são sorteios recreativos, não cópias exatas das respostas do V4.
 - Ainda falta testar estes comandos no Termux e no WhatsApp real. `novolink` revoga o convite anterior. Permissões de administração são verificadas.
 - Paridade total com V4 **não alcançada**. Recursos com serviços externos, packs, jogos, banco de dados e integração de mídia continuam pendentes.
+
+## Lote adicional — economia e proprietário
+- Economia: `minerar` (`mine`) com cooldown persistente de 30 minutos e `transferir` (`pix`, `pagar`) com débito/crédito em transação SQLite.
+- Menu: nome do dono exibido acima do número configurado localmente. Apelido padrão `𝖛𝖍𝖘`; número deve ser preenchido no `config.local.json`, não no repositório público.
+- As operações novas ainda precisam de testes no Termux. `transferir` exige menção e pode depender da equivalência entre JIDs LID e PN do WhatsApp.
