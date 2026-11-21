@@ -18,7 +18,7 @@ export function renderV4Menu(ctx, category) {
     '┣━━━━━━━━━━━━━━━━━━━━━━',
     `┃ 🤖 *BOT:* ${ctx.config.name}`,
     `┃ 👑 *DONO:* ${ctx.config.ownerName || '𝖛𝖍𝖘'}`,
-    `┃ 📱 *NÚMERO:* ${ctx.isOwner ? (ctx.config.owners[0] || 'Não configurado') : 'Privado'}`,
+    `┃ 📱 *NÚMERO:* ${ctx.config.owners[0] || 'Não configurado'}`,
     `┃ ⌨️ *PREFIXO:* ${p}`,
     `┃ 🕒 *DATA:* ${date}`,
     `┃ 📚 *COMANDOS:* ${selected.length}`,
