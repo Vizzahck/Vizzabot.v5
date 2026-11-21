@@ -5,6 +5,7 @@ import { config } from './config.js';
 import { commands } from './commands/index.js';
 import { createRegistry } from './core/registry.js';
 import { handleMessage } from './core/handler.js';
+import { trackOutgoingMessages } from './core/outgoing.js';
 import { handleGroupParticipants } from './core/welcome.js';
 import { openDatabase } from './database/index.js';
 const logger = P({ level: config.logLevel });
@@ -27,13 +28,14 @@ async function connect() {
   const { version } = await fetchLatestBaileysVersion();
   const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false });
   currentSocket = sock;
+  const sentIds = trackOutgoingMessages(sock);
   let pairingRequested = false;
   let pairingCodeShown = false;
   sock.ev.on('creds.update', () => saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')));
   sock.ev.on('messages.upsert', ({ messages, type }) => {
     if (type !== 'notify') return;
     for (const msg of messages) {
-      handleMessage(sock, msg, registry, config, logger, store).catch(err => logger.error({ err }, 'Falha ao tratar mensagem'));
+      handleMessage(sock, msg, registry, config, logger, store, sentIds).catch(err => logger.error({ err }, 'Falha ao tratar mensagem'));
     }
   });
   sock.ev.on('group-participants.update', event => {
