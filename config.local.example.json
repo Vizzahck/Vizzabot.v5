@@ -11,6 +11,7 @@
     "prefix": "!"
   },
   "features": {
-    "simi": 0
+    "simi": 0,
+    "imageLinks": 0
   }
 }
