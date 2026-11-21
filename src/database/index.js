@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 export function openDatabase(path = './data/vizzabot.sqlite') {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
+  // Keep SQL migrations and economy methods as valid multiline JavaScript.
   const db = new DatabaseSync(path);
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   db.exec(`
