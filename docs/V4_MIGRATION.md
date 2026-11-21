@@ -32,3 +32,10 @@ O arquivo `index.js` contém centenas de ramificações `case`, incluindo aliase
 4. Migrar jogos/RPG com dados persistentes.
 5. Integrar recursos externos opcionais somente com APIs e autorização apropriadas.
 6. Testar comandos, permissões e pareamento no WhatsApp real.
+
+## Lote de migração — 21/11/2026
+- Implementados controles de grupo: `linkgp`, `grupoinfo`, `fechargp`, `abrirgp`, `novolink`, `nomegp`, `descgp`, `promover`, `rebaixar`, `tagall` (com aliases).
+- Implementadas brincadeiras: `gado`, `corno`, `gay`, `lindo`, `feio`, `bebado`, `gostoso`, `vesgo`, `calvo`, `chance`, `sorte`, `sorteio` (com aliases).
+- Os medidores são sorteios recreativos, não cópias exatas das respostas do V4.
+- Ainda falta testar estes comandos no Termux e no WhatsApp real. `novolink` revoga o convite anterior. Permissões de administração são verificadas.
+- Paridade total com V4 **não alcançada**. Recursos com serviços externos, packs, jogos, banco de dados e integração de mídia continuam pendentes.
