@@ -1,0 +1,1 @@
+export default { name: 'dado', category: 'Brincadeiras', description: 'Joga um dado de 6 lados', async execute(ctx) { await ctx.reply('🎲 Você tirou *' + (1 + Math.floor(Math.random() * 6)) + '*!'); } };
