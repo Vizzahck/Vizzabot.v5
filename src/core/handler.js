@@ -2,9 +2,10 @@ import { extractText, parseCommand } from './parser.js';
 import { isOwner, isBotAdmin } from './permissions.js';
 import { moderateMessage } from './moderation.js';
 import { createRateLimiter } from './rate-limit.js';
+import { isBotGenerated } from './outgoing.js';
 const limiter = createRateLimiter({ windowMs: 5000, max: 4 });
-export async function handleMessage(sock, msg, registry, config, logger, store) {
-  if (!msg?.message || msg.key?.fromMe || msg.key?.remoteJid === 'status@broadcast') return;
+export async function handleMessage(sock, msg, registry, config, logger, store, sentIds = new Set()) {
+  if (!msg?.message || msg.key?.remoteJid === 'status@broadcast' || isBotGenerated(msg, sentIds)) return;
   const chat = msg.key.remoteJid;
   if (!chat || chat.endsWith('@newsletter')) return;
   const group = chat.endsWith('@g.us');
@@ -14,7 +15,9 @@ export async function handleMessage(sock, msg, registry, config, logger, store) 
   if (!parsed) return;
   const command = registry.get(parsed.name);
   if (!command) return;
-  const sender = group ? msg.key.participant : chat;
+  // WhatsApp sets remoteJid to the chat for self-sent messages. Use the
+  // authenticated account ID to determine permissions, not the chat target.
+  const sender = msg.key.fromMe ? sock.user?.id : (group ? msg.key.participant : chat);
   if (!sender) return;
   const owner = isOwner(sender, config.owners);
   const admin = isBotAdmin(sender, config.botAdmins, config.owners);
