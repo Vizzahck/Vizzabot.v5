@@ -20,4 +20,5 @@ import ball from './fun/8ball.js';
 import simi from './fun/simi.js';
 import desligar from './owner/desligar.js';
 import { categoryMenus } from './general/menus.js';
-export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, ...categoryMenus];
+import linkimg from './general/linkimg.js';
+export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, ...categoryMenus];
