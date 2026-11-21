@@ -1,11 +1,10 @@
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 export function openDatabase(path = './data/vizzabot.sqlite') {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
-  const db = new Database(path);
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  const db = new DatabaseSync(path);
+  db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   db.exec(`
     CREATE TABLE IF NOT EXISTS group_settings (
       jid TEXT PRIMARY KEY,
@@ -26,19 +25,14 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
       PRIMARY KEY (group_jid, user_jid)
     );
   `);
-  // Compatibilidade com bancos criados antes do sistema de economia.
   const columns = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   if (!columns.includes('last_daily')) db.exec('ALTER TABLE users ADD COLUMN last_daily INTEGER NOT NULL DEFAULT 0');
   const insertUser = db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)');
   const getUser = db.prepare('SELECT * FROM users WHERE jid = ?');
-  const daily = db.transaction((jid, now, amount, cooldown) => {
-    insertUser.run(jid);
-    const user = getUser.get(jid);
-    const remainingMs = Math.max(0, cooldown - (now - user.last_daily));
-    if (user.last_daily > 0 && remainingMs > 0) return { ok: false, remainingMs, coins: user.coins };
-    db.prepare('UPDATE users SET coins=coins+?, xp=xp+10, last_daily=? WHERE jid=?').run(amount, now, jid);
-    return { ok: true, remainingMs: 0, coins: getUser.get(jid).coins };
-  });
+  const updateDaily = db.prepare('UPDATE users SET coins=coins+?, xp=xp+10, last_daily=? WHERE jid=?');
+  const getTop = db.prepare('SELECT jid, coins, xp FROM users ORDER BY coins DESC, jid ASC LIMIT ?');
+  const getWarnings = db.prepare('SELECT count FROM warnings WHERE group_jid=? AND user_jid=?');
+  const incrementWarning = db.prepare('INSERT INTO warnings(group_jid,user_jid,count) VALUES (?,?,1) ON CONFLICT(group_jid,user_jid) DO UPDATE SET count=count+1');
   return {
     db,
     group(jid) { return db.prepare('SELECT * FROM group_settings WHERE jid = ?').get(jid) || { jid, antilink: 0, welcome: 0 }; },
@@ -50,12 +44,28 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
     user(jid) { insertUser.run(jid); return getUser.get(jid); },
     claimDaily(jid, now, amount, cooldown) {
       if (!Number.isSafeInteger(now) || now < 0 || !Number.isSafeInteger(amount) || amount <= 0 || !Number.isSafeInteger(cooldown) || cooldown <= 0) throw new Error('Parâmetros inválidos');
-      return daily(jid, now, amount, cooldown);
+      db.exec('BEGIN IMMEDIATE');
+      try {
+        insertUser.run(jid);
+        const user = getUser.get(jid);
+        const remainingMs = Math.max(0, cooldown - (now - user.last_daily));
+        if (user.last_daily > 0 && remainingMs > 0) {
+          db.exec('COMMIT');
+          return { ok: false, remainingMs, coins: user.coins };
+        }
+        updateDaily.run(amount, now, jid);
+        const coins = getUser.get(jid).coins;
+        db.exec('COMMIT');
+        return { ok: true, remainingMs: 0, coins };
+      } catch (err) {
+        db.exec('ROLLBACK');
+        throw err;
+      }
     },
-    topUsers(limit = 10) { return db.prepare('SELECT jid, coins, xp FROM users ORDER BY coins DESC, jid ASC LIMIT ?').all(Math.min(50, Math.max(1, limit))); },
-    warnings(group, user) { return db.prepare('SELECT count FROM warnings WHERE group_jid=? AND user_jid=?').get(group, user)?.count || 0; },
+    topUsers(limit = 10) { return getTop.all(Math.min(50, Math.max(1, limit))); },
+    warnings(group, user) { return getWarnings.get(group, user)?.count || 0; },
     warn(group, user) {
-      db.prepare('INSERT INTO warnings(group_jid,user_jid,count) VALUES (?,?,1) ON CONFLICT(group_jid,user_jid) DO UPDATE SET count=count+1').run(group,user);
+      incrementWarning.run(group, user);
       return this.warnings(group, user);
     },
     close() { db.close(); }
