@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createGames} from '../src/commands/games/two-player.js';
+function setup(){let messages=[];const sock={sendMessage:async(chat,content)=>{messages.push(content.text);}};const ctx=(sender,target)=>({chat:'group@g.us',sender,config:{prefix:'!'},msg:{message:{extendedTextMessage:{contextInfo:{mentionedJid:target?[target]:[]}}}},sock,reply:async(text)=>{messages.push(text);},isOwner:false});return {game:createGames({random:()=>0,now:()=>1000}),ctx,messages};}
+test('invite requires mention',async()=>{const {game,ctx,messages}=setup();await game.invite(ctx('a'),'ppt');assert.match(messages.at(-1),/@pessoa/);});
+test('only invited player can accept',async()=>{const {game,ctx,messages}=setup();await game.invite(ctx('a','b'),'ppt');await game.accept(ctx('c'),true);assert.match(messages.at(-1),/Somente/);await game.accept(ctx('b'),true);assert.match(messages.at(-1),/iniciada/);});
+test('ppt resolves only after both moves',async()=>{const {game,ctx,messages}=setup();await game.invite(ctx('a','b'),'ppt');await game.accept(ctx('b'),true);await game.play(ctx('a'),'pedra');assert.ok(game.current('group@g.us'));await game.play(ctx('b'),'tesoura');assert.equal(game.current('group@g.us'),null);assert.match(messages.at(-1),/venceu/);});
+test('forca alternates turns',async()=>{const {game,ctx,messages}=setup();await game.invite(ctx('a','b'),'forca');await game.accept(ctx('b'),true);await game.letter(ctx('b'),'A');assert.match(messages.at(-1),/Aguarde sua vez/);await game.letter(ctx('a'),'A');assert.match(messages.at(-1),/Vez de/);});
