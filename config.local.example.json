@@ -9,5 +9,8 @@
   "bot": {
     "name": "Vizzabot V5",
     "prefix": "!"
+  },
+  "features": {
+    "simi": 0
   }
 }
