@@ -6,7 +6,7 @@ const menus = [
   { name: 'menufig', aliases: ['menufigurinhas'], category: 'Figurinhas', title: '🎨 FIGURINHAS' },
   { name: 'menudono', aliases: ['menuowner'], category: 'Proprietário', title: '👑 PROPRIETÁRIO' },
   { name: 'menulogos', aliases: ['logos'], category: 'Logos', title: '🖼️ LOGOS' },
-  { name: 'menudownload', aliases: ['menudownloads'], category: 'Downloads', title: '📥 DOWNLOADS' },
+  { name: 'menudownload', aliases: ['menudownloads'], category: 'Pesquisa e Downloads', title: '🔎 PESQUISA E DOWNLOADS' },
   { name: 'menujogos', aliases: [], category: 'Jogos', title: '🎮 JOGOS' },
   { name: 'menupremium', aliases: [], category: 'Premium', title: '⭐ PREMIUM' }
 ];
