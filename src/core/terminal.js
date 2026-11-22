@@ -37,7 +37,7 @@ export function terminalStream(){
   }catch{process.stdout.write('[Vizzabot] Evento de log indisponível\n');}
  }};
 }
-export function terminalBanner({name,ownerName,prefix,commands}){
- const lines=['╔══════════════════════════════════════╗','║          VIZZABOT V5  •  TERMUX      ║','╚══════════════════════════════════════╝',name+'  |  Dono: '+ownerName,'Prefixo: '+prefix+'  |  Comandos: '+commands,'Monitor de atividades ativo. CTRL+C encerra.','────────────────────────────────────────'];
+export function terminalBanner({name,ownerName,ownerNumbers=[],prefix,commands}){
+ const lines=['╔══════════════════════════════════════╗','║          VIZZABOT V5  •  TERMUX      ║','╚══════════════════════════════════════╝',name,'👑 Dono: '+ownerName,'📱 Número: '+(ownerNumbers.join(', ')||'Não configurado'),'Prefixo: '+prefix+'  |  Comandos: '+commands,'Monitor de atividades ativo. CTRL+C encerra.','────────────────────────────────────────'];
  console.log('\n'+lines.map(line=>paint(color.bold+color.cyan,line)).join('\n')+'\n');
 }
