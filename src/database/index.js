@@ -27,6 +27,11 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
       PRIMARY KEY (group_jid, user_jid)
     );
   `);
+  const mediaFlags = ['antisticker', 'antiaudio', 'antivideo', 'antiimagem'];
+  const groupColumns = new Set(db.prepare('PRAGMA table_info(group_settings)').all().map(c => c.name));
+  for (const flag of mediaFlags) {
+    if (!groupColumns.has(flag)) db.exec('ALTER TABLE group_settings ADD COLUMN '+flag+' INTEGER NOT NULL DEFAULT 0');
+  }
   const columns = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
   if (!columns.includes('last_daily')) db.exec('ALTER TABLE users ADD COLUMN last_daily INTEGER NOT NULL DEFAULT 0');
   const insertUser = db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)');
@@ -37,9 +42,9 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
   const incrementWarning = db.prepare('INSERT INTO warnings(group_jid,user_jid,count) VALUES (?,?,1) ON CONFLICT(group_jid,user_jid) DO UPDATE SET count=count+1');
   return {
     db,
-    group(jid) { return db.prepare('SELECT * FROM group_settings WHERE jid = ?').get(jid) || { jid, antilink: 0, welcome: 0 }; },
+    group(jid) { return db.prepare('SELECT * FROM group_settings WHERE jid = ?').get(jid) || { jid, antilink: 0, welcome: 0, antisticker: 0, antiaudio: 0, antivideo: 0, antiimagem: 0 }; },
     setGroup(jid, key, enabled) {
-      if (!['antilink', 'welcome'].includes(key)) throw new Error('Configuração inválida');
+      if (!['antilink', 'welcome', ...mediaFlags].includes(key)) throw new Error('Configuração inválida');
       db.prepare('INSERT OR IGNORE INTO group_settings(jid) VALUES (?)').run(jid);
       db.prepare(`UPDATE group_settings SET ${key} = ? WHERE jid = ?`).run(enabled ? 1 : 0, jid);
     },
