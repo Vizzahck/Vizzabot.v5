@@ -21,7 +21,7 @@ export function weatherDescription(code) {
  return 'Condição variável';
 }
 export const publicServices = [
- {name:'wikipedia',aliases:['wiki'],category:'Ferramentas',description:'Resumo da Wikipédia em português (grátis)',async execute(ctx){
+ {name:'wikipedia',aliases:['wiki'],category:'Pesquisa e Downloads',description:'Resumo da Wikipédia em português (grátis)',async execute(ctx){
   const query=cleanQuery(ctx.args);
   if (!query) return ctx.reply('Uso: '+ctx.config.prefix+'wikipedia assunto');
   try {
