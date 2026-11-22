@@ -37,7 +37,7 @@ export async function inspect(target){
 }
 export async function download(target,kind,dir){const template=join(dir,'media.%(ext)s');const args=['--no-playlist','--no-warnings','--max-filesize','45M','--output',template];if(kind==='audio')args.push('-x','--audio-format','mp3','--audio-quality','5');else args.push('-f','bv*[height<=720]+ba/b[height<=720]/b','--merge-output-format','mp4','--recode-video','mp4');args.push(target);await run('yt-dlp',args,{timeoutMs:180000,maxOutput:4*1024*1024});const names=(await readdir(dir)).filter(x=>x.startsWith('media.')&&!x.endsWith('.part'));if(!names.length)throw Error('Arquivo não encontrado após download');const file=join(dir,names[0]);if((await stat(file)).size>MAX_BYTES)throw Error('Arquivo maior que 45 MB');return {buffer:await readFile(file),name:names[0]};}
 export const mediaCommands=['play','video'].map(kind=>({
- name:kind,aliases:kind==='play'?['musica','audio','ytmp3']:['ytmp4','videoyt'],category:'Downloads',
+ name:kind,aliases:kind==='play'?['musica','audio','ytmp3']:['ytmp4','videoyt'],category:'Pesquisa e Downloads',
  description:kind==='play'?'Baixa áudio por link ou nome':'Baixa vídeo por link ou nome',
  async execute(ctx){
   const search=ctx.args.join(' ').trim();
