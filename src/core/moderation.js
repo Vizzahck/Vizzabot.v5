@@ -2,7 +2,7 @@ import { groupRoles } from './group.js';
 import { isBotAdmin } from './permissions.js';
 import { extractText } from './parser.js';
 
-const linkPattern=/(?:https?:\\/\\/|www\\.|chat\\.whatsapp\\.com\\/)[^\\s]+/i;
+const linkPattern=/(?:https?:\/\/|www\.|chat\.whatsapp\.com\/)[^\s]+/i;
 const filterTypes={stickerMessage:'antisticker',audioMessage:'antiaudio',videoMessage:'antivideo',imageMessage:'antiimagem'};
 export function activeMediaFilter(message,settings){
  let m=message;
