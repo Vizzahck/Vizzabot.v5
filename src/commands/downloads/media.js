@@ -5,9 +5,36 @@ import { join } from 'node:path';
 const MAX_BYTES=45*1024*1024;
 export function isHttpUrl(value){try{const u=new URL(value);return ['http:','https:'].includes(u.protocol);}catch{return false;}}
 export function queryTarget(input){const value=input.trim();if(!value||value.length>250)throw Error('Pesquisa vazia ou muito longa');return isHttpUrl(value)?value:'ytsearch1:'+value;}
-export function formatInfo(info){const duration=Number(info.duration)||0;const mins=Math.floor(duration/60),secs=String(duration%60).padStart(2,'0');return '🎵 *'+String(info.title||'Sem título').slice(0,140)+'*\n👤 '+String(info.uploader||info.channel||'Não informado').slice(0,100)+'\n⏱️ '+mins+':'+secs+'\n🔗 '+String(info.webpage_url||'').slice(0,220);}
+export function formatInfo(info){
+ const duration=Number(info.duration);
+ const time=Number.isFinite(duration)&&duration>0?Math.floor(duration/60)+':'+String(Math.floor(duration%60)).padStart(2,'0'):'Não informada';
+ const published=/^\\d{8}$/.test(String(info.upload_date||''))?String(info.upload_date).replace(/^(\\d{4})(\\d{2})(\\d{2})$/,'$3/$2/$1'):'Não informada';
+ const views=Number.isFinite(Number(info.view_count))?Number(info.view_count).toLocaleString('pt-BR'):'Não informadas';
+ return '❗ *DOWNLOAD* ❗\\n\\n🎵 *Título:* '+String(info.title||'Não informado').slice(0,140)+'\\n👤 *Canal:* '+String(info.uploader||info.channel||'Não informado').slice(0,100)+'\\n📅 *Publicado:* '+published+'\\n👁️ *Visualizações:* '+views+'\\n⏱️ *Duração:* '+time+'\\n🔗 '+String(info.webpage_url||'').slice(0,220);
+}
+export function resolvedEntry(info){
+ if(info?._type==='playlist'||Array.isArray(info?.entries)){
+  const entry=info.entries?.find(x=>x&&x.id);
+  if(!entry)throw Error('Pesquisa sem resultados');
+  return entry.webpage_url||entry.url||(entry.id?'https://www.youtube.com/watch?v='+encodeURIComponent(entry.id):null);
+ }
+ return null;
+}
 function run(bin,args,{timeoutMs=90000,maxOutput=2*1024*1024}={}){return new Promise((resolve,reject)=>{let out='',err='';const child=spawn(bin,args,{stdio:['ignore','pipe','pipe']});const timer=setTimeout(()=>child.kill('SIGKILL'),timeoutMs);child.stdout.on('data',chunk=>{out+=chunk;if(out.length>maxOutput)child.kill('SIGKILL');});child.stderr.on('data',chunk=>{err+=chunk;if(err.length>maxOutput)child.kill('SIGKILL');});child.on('error',e=>{clearTimeout(timer);reject(e);});child.on('close',code=>{clearTimeout(timer);code===0?resolve(out):reject(Error('yt-dlp falhou ('+code+'): '+err.slice(-400)));});});}
-export async function inspect(target){const raw=await run('yt-dlp',['--no-playlist','--dump-single-json','--no-warnings',target]);const info=JSON.parse(raw);if(info.is_live||info.live_status==='is_live')throw Error('Transmissões ao vivo não são suportadas');if(Number(info.duration)>3600)throw Error('Mídia maior que uma hora');return info;}
+export async function inspect(target){
+ const raw=await run('yt-dlp',['--no-playlist','--dump-single-json','--no-warnings',target]);
+ let info=JSON.parse(raw);
+ const entry=resolvedEntry(info);
+ if(entry){
+  const url=isHttpUrl(entry)?entry:('https://www.youtube.com/watch?v='+encodeURIComponent(entry));
+  const detail=await run('yt-dlp',['--no-playlist','--dump-single-json','--no-warnings',url]);
+  info=JSON.parse(detail);
+ }
+ if(info.is_live||info.live_status==='is_live')throw Error('Transmissões ao vivo não são suportadas');
+ if(Number(info.duration)>3600)throw Error('Mídia maior que uma hora');
+ if(!info.webpage_url||!isHttpUrl(info.webpage_url))throw Error('URL de mídia não resolvida');
+ return info;
+}
 export async function download(target,kind,dir){const template=join(dir,'media.%(ext)s');const args=['--no-playlist','--no-warnings','--max-filesize','45M','--output',template];if(kind==='audio')args.push('-x','--audio-format','mp3','--audio-quality','5');else args.push('-f','bv*[height<=720]+ba/b[height<=720]/b','--merge-output-format','mp4','--recode-video','mp4');args.push(target);await run('yt-dlp',args,{timeoutMs:180000,maxOutput:4*1024*1024});const names=(await readdir(dir)).filter(x=>x.startsWith('media.')&&!x.endsWith('.part'));if(!names.length)throw Error('Arquivo não encontrado após download');const file=join(dir,names[0]);if((await stat(file)).size>MAX_BYTES)throw Error('Arquivo maior que 45 MB');return {buffer:await readFile(file),name:names[0]};}
 export const mediaCommands=['play','video'].map(kind=>({
  name:kind,aliases:kind==='play'?['musica','audio','ytmp3']:['ytmp4','videoyt'],category:'Downloads',
@@ -27,7 +54,7 @@ export const mediaCommands=['play','video'].map(kind=>({
    }else if(kind==='play')await ctx.reply(caption);
    dir=await mkdtemp(join(tmpdir(),'vizzabot-media-'));
    const file=await download(url,kind==='play'?'audio':'video',dir);
-   if(kind==='play')await ctx.sock.sendMessage(ctx.chat,{audio:file.buffer,mimetype:'audio/mpeg',fileName:'vizzabot.mp3'},{quoted:ctx.msg});
+   if(kind==='play')await ctx.sock.sendMessage(ctx.chat,{audio:file.buffer,mimetype:'audio/mpeg',fileName:(String(info.title||'audio').replace(/[\\\\/:*?\"<>|]/g,'').slice(0,80)||'audio')+'.mp3'},{quoted:ctx.msg});
    else await ctx.sock.sendMessage(ctx.chat,{video:file.buffer,mimetype:'video/mp4',caption},{quoted:ctx.msg});
   }catch(error){ctx.logger.warn({message:error.message,command:kind},'Falha no download');await ctx.reply('⚠️ Não consegui baixar essa mídia. Confira o link, o suporte da plataforma e se yt-dlp/ffmpeg estão instalados.');}
   finally{if(dir)await rm(dir,{recursive:true,force:true}).catch(()=>{});}
