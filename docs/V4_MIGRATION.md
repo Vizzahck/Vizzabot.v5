@@ -44,3 +44,10 @@ O arquivo `index.js` contém centenas de ramificações `case`, incluindo aliase
 - Economia: `minerar` (`mine`) com cooldown persistente de 30 minutos e `transferir` (`pix`, `pagar`) com débito/crédito em transação SQLite.
 - Menu: nome do dono exibido acima do número configurado localmente. Apelido padrão `𝖛𝖍𝖘`; número deve ser preenchido no `config.local.json`, não no repositório público.
 - As operações novas ainda precisam de testes no Termux. `transferir` exige menção e pode depender da equivalência entre JIDs LID e PN do WhatsApp.
+
+## Lote adicional — utilidades de grupos
+- `hidetag`/`totag`: envia texto mencionando participantes sem imprimir a lista de nomes (apenas administradores).
+- `regras`/`regrasgp`: mostra descrição do grupo.
+- `sairgp confirmar`: saída do grupo, apenas proprietário, com confirmação.
+- `mencionar`/`marcarwa`: menciona usuários selecionados.
+- Não representam paridade integral com os 978 rótulos `case` do V4. Recursos externos, mídia, agendamentos, jogos e muitos outros continuam pendentes. Validar no Termux antes de usar em grupos reais.
