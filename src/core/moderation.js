@@ -1,6 +1,7 @@
 import { groupRoles } from './group.js';
 import { isBotAdmin } from './permissions.js';
 import { extractText } from './parser.js';
+import { blockedWords, matchesBlockedWord } from '../commands/admin/word-filter.js';
 
 const linkPattern=/(?:https?:\/\/|www\.|chat\.whatsapp\.com\/)[^\s]+/i;
 const filterTypes={stickerMessage:'antisticker',audioMessage:'antiaudio',videoMessage:'antivideo',imageMessage:'antiimagem'};
@@ -20,8 +21,10 @@ export async function moderateMessage(sock,msg,store,logger,config={}){
  if(!chat?.endsWith('@g.us')||msg.key.fromMe)return false;
  const settings=store.group(chat);
  const flag=activeMediaFilter(msg.message,settings);
- const link=settings.antilink&&linkPattern.test(extractText(msg.message));
- if(!flag&&!link)return false;
+ const messageText=extractText(msg.message);
+ const link=settings.antilink&&linkPattern.test(messageText);
+ const blocked=settings.antipalavra?matchesBlockedWord(messageText,blockedWords(store.db,chat)):null;
+ if(!flag&&!link&&!blocked)return false;
  const sender=msg.key.participant;
  if(!sender)return false;
  try{
@@ -29,7 +32,7 @@ export async function moderateMessage(sock,msg,store,logger,config={}){
   if(roles.admin||!roles.botAdmin)return false;
   await sock.sendMessage(chat,{delete:msg.key});
   const count=store.warn(chat,sender);
-  await sock.sendMessage(chat,{text:'⚠️ '+(flag?'Mídia bloqueada ('+flag+').':'Link removido.')+' Avisos registrados: '+count+'.'});
+  await sock.sendMessage(chat,{text:'⚠️ '+(flag?'Mídia bloqueada ('+flag+').':blocked?'Palavra bloqueada.':'Link removido.')+' Avisos registrados: '+count+'.'});
   return true;
  }catch(err){logger.warn({err},'Não foi possível moderar mensagem');return false;}
 }
