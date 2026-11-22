@@ -29,5 +29,10 @@ export function readLocalConfig(path = 'config.local.json') {
   if (imageLinks !== 0 && imageLinks !== 1) throw new Error('features.imageLinks deve ser 0 ou 1');
   const monitor = data.features?.activityMonitor ?? 1;
   if (monitor !== 0 && monitor !== 1) throw new Error('features.activityMonitor deve ser 0 ou 1');
-  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1, imageLinksEnabled: imageLinks === 1, activityMonitor: monitor === 1 };
+  const flag = (value, label) => { if (value === undefined) return undefined; if (typeof value !== 'boolean') throw new Error(label + ' deve ser true ou false'); return value; };
+  const allowGroups = flag(data.allowGroups, 'allowGroups');
+  const allowPrivate = flag(data.allowPrivate, 'allowPrivate');
+  const activityMonitor = flag(data.activityMonitor, 'activityMonitor');
+  return { ownerName, ownerNumbers, botAdmins, botName, prefix, simiEnabled: simi === 1, imageLinksEnabled: imageLinks === 1, activityMonitor: activityMonitor ?? (monitor === 1), allowGroups, allowPrivate };
+
 }
