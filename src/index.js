@@ -32,12 +32,17 @@ async function connect() {
   currentSocket = sock;
   const sentIds = trackOutgoingMessages(sock);
   const seenMessageIds = new Set();
+  let inboundCount = 0;
+  let decryptedCount = 0;
   let pairingRequested = false;
   let pairingCodeShown = false;
   sock.ev.on('creds.update', () => saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')));
   sock.ev.on('messages.upsert', ({ messages, type }) => {
+    inboundCount += messages.length;
+    if (config.activityMonitor) logger.info({ count: messages.length, type }, 'WhatsApp entregou lote de mensagens ao bot');
     if (type !== 'notify' && type !== 'append') return;
     for (const msg of messages) {
+      if (msg.message) decryptedCount++;
       if (type === 'append' && !msg.key?.fromMe) continue;
       const identity = [msg.key?.remoteJid, msg.key?.participant, msg.key?.id].join(':');
       if (msg.key?.id && seenMessageIds.has(identity)) continue;
@@ -80,6 +85,8 @@ async function connect() {
       pairingSessionFailed = false;
       if (pairingCodeShown) console.log('WhatsApp vinculado com sucesso.');
       logger.info('Vizzabot V5 conectado');
+      logger.info({ allowPrivate: config.allowPrivate, allowGroups: config.allowGroups, activityMonitor: config.activityMonitor }, 'Diagnóstico de recepção ativo; envie !ping de outro número');
+      setTimeout(() => { if (currentSocket !== sock || stopping) return; logger.info({ inboundCount, decryptedCount }, 'Diagnóstico de mensagens desde a conexão (contadores locais)'); }, 30000).unref?.();
     }
     if (connection === 'close' && !stopping) {
       const status = lastDisconnect?.error?.output?.statusCode;
