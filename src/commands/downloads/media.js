@@ -49,13 +49,15 @@ export const mediaCommands=['play','video'].map(kind=>({
    const info=await inspect(target);
    const url=info.webpage_url&&isHttpUrl(info.webpage_url)?info.webpage_url:target;
    const caption=formatInfo(info);
+   // Self-chat replies should not quote messages from the same account.
+   const sendOptions=ctx.msg.key?.fromMe && !ctx.chat.endsWith('@g.us') ? undefined : {quoted:ctx.msg};
    if(kind==='play'&&info.thumbnail&&isHttpUrl(info.thumbnail)){
-    try{await ctx.sock.sendMessage(ctx.chat,{image:{url:info.thumbnail},caption},{quoted:ctx.msg});}catch{await ctx.reply(caption);}
+    try{await ctx.sock.sendMessage(ctx.chat,{image:{url:info.thumbnail},caption},sendOptions);}catch{await ctx.reply(caption);}
    }else if(kind==='play')await ctx.reply(caption);
    dir=await mkdtemp(join(tmpdir(),'vizzabot-media-'));
    const file=await download(url,kind==='play'?'audio':'video',dir);
-   if(kind==='play')await ctx.sock.sendMessage(ctx.chat,{audio:file.buffer,mimetype:'audio/mpeg',fileName:(String(info.title||'audio').replace(/[\\\\/:*?\"<>|]/g,'').slice(0,80)||'audio')+'.mp3'},{quoted:ctx.msg});
-   else await ctx.sock.sendMessage(ctx.chat,{video:file.buffer,mimetype:'video/mp4',caption},{quoted:ctx.msg});
+   if(kind==='play')await ctx.sock.sendMessage(ctx.chat,{audio:file.buffer,mimetype:'audio/mpeg',fileName:(String(info.title||'audio').replace(/[\\\\/:*?\"<>|]/g,'').slice(0,80)||'audio')+'.mp3'},sendOptions);
+   else await ctx.sock.sendMessage(ctx.chat,{video:file.buffer,mimetype:'video/mp4',caption},sendOptions);
   }catch(error){ctx.logger.warn({message:error.message,command:kind},'Falha no download');await ctx.reply('⚠️ Não consegui baixar essa mídia. Confira o link, o suporte da plataforma e se yt-dlp/ffmpeg estão instalados.');}
   finally{if(dir)await rm(dir,{recursive:true,force:true}).catch(()=>{});}
  }
