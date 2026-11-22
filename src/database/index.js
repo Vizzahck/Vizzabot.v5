@@ -27,7 +27,7 @@ export function openDatabase(path = './data/vizzabot.sqlite') {
       PRIMARY KEY (group_jid, user_jid)
     );
   `);
-  const mediaFlags = ['antisticker', 'antiaudio', 'antivideo', 'antiimagem'];
+  const mediaFlags = ['antisticker', 'antiaudio', 'antivideo', 'antiimagem', 'antipalavra'];
   const groupColumns = new Set(db.prepare('PRAGMA table_info(group_settings)').all().map(c => c.name));
   for (const flag of mediaFlags) {
     if (!groupColumns.has(flag)) db.exec('ALTER TABLE group_settings ADD COLUMN '+flag+' INTEGER NOT NULL DEFAULT 0');
