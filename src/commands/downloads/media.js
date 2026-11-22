@@ -8,9 +8,9 @@ export function queryTarget(input){const value=input.trim();if(!value||value.len
 export function formatInfo(info){
  const duration=Number(info.duration);
  const time=Number.isFinite(duration)&&duration>0?Math.floor(duration/60)+':'+String(Math.floor(duration%60)).padStart(2,'0'):'Não informada';
- const published=/^\\d{8}$/.test(String(info.upload_date||''))?String(info.upload_date).replace(/^(\\d{4})(\\d{2})(\\d{2})$/,'$3/$2/$1'):'Não informada';
+ const published=/^\d{8}$/.test(String(info.upload_date||''))?String(info.upload_date).replace(/^(\d{4})(\d{2})(\d{2})$/,'$3/$2/$1'):'Não informada';
  const views=Number.isFinite(Number(info.view_count))?Number(info.view_count).toLocaleString('pt-BR'):'Não informadas';
- return '❗ *DOWNLOAD* ❗\\n\\n🎵 *Título:* '+String(info.title||'Não informado').slice(0,140)+'\\n👤 *Canal:* '+String(info.uploader||info.channel||'Não informado').slice(0,100)+'\\n📅 *Publicado:* '+published+'\\n👁️ *Visualizações:* '+views+'\\n⏱️ *Duração:* '+time+'\\n🔗 '+String(info.webpage_url||'').slice(0,220);
+ return '❗ *DOWNLOAD* ❗\n\n🎵 *Título:* '+String(info.title||'Não informado').slice(0,140)+'\n👤 *Canal:* '+String(info.uploader||info.channel||'Não informado').slice(0,100)+'\n📅 *Publicado:* '+published+'\n👁️ *Visualizações:* '+views+'\n⏱️ *Duração:* '+time+'\n🔗 '+String(info.webpage_url||'').slice(0,220);
 }
 export function resolvedEntry(info){
  if(info?._type==='playlist'||Array.isArray(info?.entries)){
