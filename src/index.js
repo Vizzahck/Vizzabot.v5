@@ -1,5 +1,6 @@
 import makeWASocket, { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
 import P from 'pino';
+import { terminalStream, terminalBanner } from './core/terminal.js';
 import { askPairingNumber, formatPairingCode } from './core/pairing.js';
 import { config } from './config.js';
 import { commands } from './commands/index.js';
@@ -8,9 +9,10 @@ import { handleMessage } from './core/handler.js';
 import { trackOutgoingMessages } from './core/outgoing.js';
 import { handleGroupParticipants } from './core/welcome.js';
 import { openDatabase } from './database/index.js';
-const logger = P({ level: config.logLevel });
+const logger = P({ level: config.logLevel }, terminalStream());
 const registry = createRegistry(commands);
 const store = openDatabase();
+terminalBanner({name:config.name,ownerName:config.ownerName,prefix:config.prefix,commands:commands.length});
 let reconnectTimer;
 let reconnectAttempts = 0;
 let currentSocket;
