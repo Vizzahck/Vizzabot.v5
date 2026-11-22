@@ -22,7 +22,7 @@ export const usefulV4Commands=[
   if(!/^\d{2}$/.test(ddd||''))return ctx.reply('Uso: '+ctx.config.prefix+'ddd 98');
   await ctx.reply(dddLookup(ddd)?'📞 DDD '+ddd+': '+dddLookup(ddd)+'\nObs.: indica região de origem, não localização atual.':'DDD não reconhecido.');
  }},
- {name:'google',aliases:['pesquisargoogle'],category:'Ferramentas',description:'Gera link de pesquisa no Google sem API paga',async execute(ctx){
+ {name:'google',aliases:['pesquisargoogle'],category:'Pesquisa e Downloads',description:'Gera link de pesquisa no Google sem API paga',async execute(ctx){
   const query=ctx.args.join(' ').trim();
   if(!query||query.length>150)return ctx.reply('Uso: '+ctx.config.prefix+'google assunto (até 150 caracteres)');
   await ctx.reply('🔎 Pesquisa: https://www.google.com/search?q='+encodeURIComponent(query));
