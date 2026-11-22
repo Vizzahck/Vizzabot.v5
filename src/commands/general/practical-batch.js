@@ -1,0 +1,22 @@
+import { randomInt } from 'node:crypto';
+const make=(name,category,description,execute,aliases=[])=>({name,category,description,execute,aliases});
+const str=ctx=>ctx.args.join(' ').trim();
+const usage=(ctx,name,example)=>ctx.reply('Uso: '+ctx.config.prefix+name+' '+example);
+const bounded=(ctx,name,fn)=>{const s=str(ctx);return s&&s.length<=1200?ctx.reply(fn(s)):usage(ctx,name,'texto (máximo 1200 caracteres)');};
+export const practicalBatch=[
+ make('ordenarpalavras','Ferramentas','Organiza palavras em ordem alfabética',ctx=>bounded(ctx,'ordenarpalavras',s=>s.split(/\s+/u).sort((a,b)=>a.localeCompare(b,'pt-BR')).join(' '))),
+ make('ordenarnumeros','Ferramentas','Organiza números em ordem crescente',async ctx=>{const a=ctx.args.map(x=>Number(x.replace(',','.')));return a.length>=2&&a.length<=50&&a.every(Number.isFinite)?ctx.reply('🔢 '+a.sort((x,y)=>x-y).join(', ')):usage(ctx,'ordenarnumeros','8 2 15 3');}),
+ make('somar','Ferramentas','Soma uma lista de números',async ctx=>{const a=ctx.args.map(x=>Number(x.replace(',','.')));return a.length>=2&&a.length<=50&&a.every(Number.isFinite)?ctx.reply('➕ '+a.reduce((x,y)=>x+y,0)):usage(ctx,'somar','1 2 3');}),
+ make('multiplicar','Ferramentas','Multiplica uma lista de números',async ctx=>{const a=ctx.args.map(x=>Number(x.replace(',','.')));const n=a.reduce((x,y)=>x*y,1);return a.length>=2&&a.length<=30&&a.every(Number.isFinite)&&Number.isFinite(n)?ctx.reply('✖️ '+n):usage(ctx,'multiplicar','2 3 4');}),
+ make('maior','Ferramentas','Encontra o maior número',async ctx=>{const a=ctx.args.map(x=>Number(x.replace(',','.')));return a.length>=2&&a.length<=50&&a.every(Number.isFinite)?ctx.reply('📈 '+Math.max(...a)):usage(ctx,'maior','4 7 2');}),
+ make('menor','Ferramentas','Encontra o menor número',async ctx=>{const a=ctx.args.map(x=>Number(x.replace(',','.')));return a.length>=2&&a.length<=50&&a.every(Number.isFinite)?ctx.reply('📉 '+Math.min(...a)):usage(ctx,'menor','4 7 2');}),
+ make('mediana','Ferramentas','Calcula mediana de números',async ctx=>{const a=ctx.args.map(x=>Number(x.replace(',','.')));if(a.length<2||a.length>50||!a.every(Number.isFinite))return usage(ctx,'mediana','3 7 5');a.sort((x,y)=>x-y);const m=Math.floor(a.length/2);await ctx.reply('📊 Mediana: '+(a.length%2?a[m]:(a[m-1]+a[m])/2));}),
+ make('divisores','Ferramentas','Lista divisores positivos até 100000',async ctx=>{const n=Number(ctx.args[0]);if(!Number.isInteger(n)||n<1||n>100000)return usage(ctx,'divisores','36');const a=[];for(let i=1;i<=n;i++)if(n%i===0)a.push(i);await ctx.reply('🔢 Divisores de '+n+': '+a.join(', '));}),
+ make('primo','Ferramentas','Verifica se número é primo',async ctx=>{const n=Number(ctx.args[0]);if(!Number.isSafeInteger(n)||n<0||n>1000000000)return usage(ctx,'primo','97');let prime=n>=2;for(let i=2;i*i<=n&&prime;i++)if(n%i===0)prime=false;await ctx.reply(n+(prime?' é primo ✅':' não é primo ❌'));}),
+ make('mmc','Ferramentas','Calcula mínimo múltiplo comum',async ctx=>{const a=Number(ctx.args[0]),b=Number(ctx.args[1]);if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b)||a<1||b<1||a>1000000||b>1000000)return usage(ctx,'mmc','12 18');let x=a,y=b;while(y)[x,y]=[y,x%y];await ctx.reply('🧮 MMC: '+a/x*b);}),
+ make('mdc','Ferramentas','Calcula máximo divisor comum',async ctx=>{const a=Number(ctx.args[0]),b=Number(ctx.args[1]);if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b)||a<1||b<1||a>1000000000||b>1000000000)return usage(ctx,'mdc','12 18');let x=a,y=b;while(y)[x,y]=[y,x%y];await ctx.reply('🧮 MDC: '+x);}),
+ make('embaralharletras','Brincadeiras','Mistura as letras de uma palavra',async ctx=>{const s=str(ctx);if(!s||s.length>100)return usage(ctx,'embaralharletras','palavra');const a=[...s];for(let i=a.length-1;i>0;i--){const j=randomInt(i+1);[a[i],a[j]]=[a[j],a[i]];}await ctx.reply('🔀 '+a.join(''));}),
+ make('escolhernumero','Brincadeiras','Escolhe um dos números informados',async ctx=>{const a=ctx.args.map(Number);return a.length>=2&&a.length<=50&&a.every(Number.isFinite)?ctx.reply('🎲 Escolhido: '+a[randomInt(a.length)]):usage(ctx,'escolhernumero','10 20 30');}),
+ make('paridade','Ferramentas','Verifica se número é par ou ímpar',async ctx=>{const n=Number(ctx.args[0]);return Number.isSafeInteger(n)?ctx.reply('🔢 '+n+' é '+(n%2===0?'par':'ímpar')):usage(ctx,'paridade','17');}),
+ make('contarfrases','Ferramentas','Conta frases separadas por pontuação',ctx=>bounded(ctx,'contarfrases',s=>'📝 Frases: '+s.split(/[.!?]+/u).filter(x=>x.trim()).length))
+];
