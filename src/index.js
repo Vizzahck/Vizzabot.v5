@@ -12,7 +12,7 @@ import { openDatabase } from './database/index.js';
 const logger = P({ level: config.logLevel }, terminalStream());
 const registry = createRegistry(commands);
 const store = openDatabase();
-terminalBanner({name:config.name,ownerName:config.ownerName,prefix:config.prefix,commands:commands.length});
+terminalBanner({name:config.name,ownerName:config.ownerName,ownerNumbers:config.owners,prefix:config.prefix,commands:commands.length});
 let reconnectTimer;
 let reconnectAttempts = 0;
 let currentSocket;
