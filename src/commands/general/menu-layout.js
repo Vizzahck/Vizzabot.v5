@@ -1,5 +1,5 @@
 export const MENU_IMAGE = 'https://telegra.ph/file/cc8a2fd436377132c9b96.jpg';
-export const CATEGORY_ICONS={Geral:'🌐',Administração:'🛡️',Figurinhas:'🎨',Economia:'💎',Proprietário:'👑',Brincadeiras:'🎲',Menus:'📚',Ferramentas:'🧰',Jogos:'🎮',Downloads:'📥',Logos:'🖼️',Premium:'⭐'};
+export const CATEGORY_ICONS={Geral:'🌐',Administração:'🛡️',Figurinhas:'🎨',Economia:'💎',Proprietário:'👑',Brincadeiras:'🎲',Menus:'📚',Ferramentas:'🧰',Jogos:'🎮',Downloads:'📥','Pesquisa e Downloads':'🔎',Logos:'🖼️',Premium:'⭐'};
 export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
  const cmds=ctx.registry.list().filter(c=>(!c.ownerOnly||ctx.isOwner)&&(!category||c.category===category));
  const groups=new Map();
