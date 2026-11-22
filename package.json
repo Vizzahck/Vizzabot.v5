@@ -11,7 +11,8 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "test": "node --test",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "setup": "node scripts/setup-local.mjs"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.0",
