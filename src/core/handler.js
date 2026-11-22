@@ -32,7 +32,7 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   const admin = isBotAdmin(sender, config.botAdmins, config.owners);
   if (!owner && !limiter.allow(sender)) { if (config.activityMonitor) activity(logger, 'rate-limited', { command: command.name }); return; }
   if (config.activityMonitor) activity(logger, 'command', { command: command.name, chatType: chatKind(chat), own: !!msg.key.fromMe });
-  const reply = async text => sock.sendMessage(chat, { text }, { quoted: msg });
+  // Self-chat messages can be echoed with different LID/PN identifiers.\n  // Avoid attaching a quoted context to messages sent to the same account.\n  const selfChat = !group && !!msg.key.fromMe;\n  const reply = async text => sock.sendMessage(chat, { text }, selfChat ? undefined : { quoted: msg });
   if (command.ownerOnly && !owner) { if (config.activityMonitor) activity(logger, 'denied', { command: command.name }); return reply('⛔ Comando exclusivo do proprietário.'); }
   try {
     await command.execute({ sock, msg, chat, sender, args: parsed.args, reply, isOwner: owner, isBotAdmin: admin, config, registry, store, logger });
