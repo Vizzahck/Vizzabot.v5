@@ -26,4 +26,6 @@ import { v4Fun, sorteio } from './fun/v4-fun.js';
 import { economyTools } from './rpg/economy-tools.js';
 import { gameCommands } from './games/two-player.js';
 import { mediaCommands } from './downloads/media.js';
-export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands];
+import { ownerSettings } from './owner/settings.js';
+import { v4Utilities } from './general/v4-utilities.js';
+export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities];
