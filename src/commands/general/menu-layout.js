@@ -1,3 +1,5 @@
+import { ownerState } from '../owner/restored.js';
+import { readFile } from 'node:fs/promises';
 export const MENU_IMAGE = 'https://telegra.ph/file/cc8a2fd436377132c9b96.jpg';
 export const CATEGORY_ICONS={Geral:'🌐',Administração:'🛡️',Figurinhas:'🎨',Economia:'💎',Proprietário:'👑',Brincadeiras:'🎲',Menus:'📚',Ferramentas:'🧰',Jogos:'🎮',Downloads:'📥','Pesquisa e Downloads':'🔎',Logos:'🖼️',Premium:'⭐'};
 export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
@@ -12,10 +14,11 @@ export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
  return lines.join('\n');
 }
 export async function sendMenu(ctx,options={}){
- const caption=menuText(ctx,options);
+ const settings=await ownerState();
+ const caption=menuText(ctx,options).replace('✦ V I Z Z A B O T ✦',()=>settings.menuTitle||'✦ V I Z Z A B O T ✦').replace('✦ *VIZZABOT V5* ✦',()=>settings.menuFooter||'✦ *VIZZABOT V5* ✦');
  const url=process.env.MENU_LOGO_URL?.trim()||MENU_IMAGE;
  try{
   const opts=ctx.msg.key?.fromMe&&!ctx.chat.endsWith('@g.us')?undefined:{quoted:ctx.msg};
-  await ctx.sock.sendMessage(ctx.chat,{image:{url},caption},opts);
+  await ctx.sock.sendMessage(ctx.chat,{image:settings.customMenuImage?await readFile('data/menu-custom.jpg'):{url},caption},opts);
  }catch(error){ctx.logger?.warn?.({err:error},'Imagem do menu indisponível');await ctx.reply(caption);}
 }
