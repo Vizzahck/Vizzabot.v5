@@ -8,7 +8,7 @@ let busy=false;
 const specs=[
  ['toimg',[],['sticker'],'png',['-frames:v','1']],
  ['togif',[],['video'],'mp4',['-an','-vf','scale=480:-2:force_original_aspect_ratio=decrease','-c:v','libx264','-pix_fmt','yuv420p']],
- ['tomp3',[],['video','audio'],'mp3',['-vn','-c:a','libmp3lame']],
+ ['tomp3',['extrairaudio','videopraaudio'],['video','audio'],'mp3',['-vn','-c:a','libmp3lame']],
  ['grave',['grave2'],['audio'],'mp3',['-af','asetrate=44100*0.85,aresample=44100']],
  ['audiolento',['slow'],['audio'],'mp3',['-af','atempo=0.75']],
  ['audiorapido',['fast'],['audio'],'mp3',['-af','atempo=1.5']],
@@ -34,7 +34,7 @@ async function run(args){
  });
 }
 export const restoredMedia=specs.map(([name,aliases,kinds,ext,filters])=>({
- name,aliases,category:ext==='webp'||ext==='png'?'Figurinhas':'Ferramentas',description:'Conversão local de mídia: '+name,
+ name,aliases,category:name==='tomp3'?'Pesquisa e Downloads':ext==='webp'||ext==='png'?'Figurinhas':'Ferramentas',description:name==='tomp3'?'Extrai áudio de vídeo ou converte áudio para MP3':'Conversão local de mídia: '+name,
  async execute(ctx){
   const s=source(ctx,kinds);
   if(!s)return ctx.reply('Responda a uma mídia compatível com '+ctx.config.prefix+name);
