@@ -44,4 +44,23 @@ import { v4QuickCommands } from './fun/v4-quick.js';
 import { practicalBatch } from './general/practical-batch.js';
 import { v4ExtraCommands } from './general/v4-extra-batch.js';
 import { dailyBatch } from './general/daily-batch.js';
-export const commands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames];
+const baseCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames];
+
+const legacyAliases = {
+ sticker:['st','stk'], extrairtexto:['totext','ler','lerfoto'], linkimg:['gerarlink','imgpralink'],
+ perfil:['me','my-info'], saldo:['my'], ranking:['rankcoins'], inventario:['itensrpg'],
+ minerar:['extrair-minerio'], tesouro:['buscar-tesouros','caçar-tesouro'],
+ antiimagem:['antiimg'], boasvindas:['bemvindo','welcome'], advertir:['adverter'],
+ descgp:['descriçãogp'], mencionar:['marcawa'], menu:['menulist'], menuadm:['menuadmin'],
+ menufig:['menufigurinhas'], menujogos:['jogos'], menudownload:['download'],
+ repetir:['repertirtexto']
+};
+// Preserve existing commands and aliases; never shadow a registered name.
+const occupied=new Set(baseCommands.flatMap(c=>[c.name,...(c.aliases||[])]));
+export const commands=baseCommands.map(c=>{
+ const aliases=[...(c.aliases||[])];
+ for(const alias of legacyAliases[c.name]||[]){
+  if(!occupied.has(alias)){occupied.add(alias);aliases.push(alias);}
+ }
+ return {...c,aliases};
+});
