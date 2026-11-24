@@ -62,3 +62,9 @@ export const mediaCommands=['play','video','mp4'].map(kind=>({
   finally{if(dir)await rm(dir,{recursive:true,force:true}).catch(()=>{});}
  }
 }));
+mediaCommands.push({name:'letra',aliases:['letramusica'],category:'Pesquisa e Downloads',description:'Busca fontes de letras por música e artista',async execute(ctx){
+ const q=ctx.args.join(' ').trim();
+ if(!q||q.length>200)return ctx.reply('Uso: '+ctx.config.prefix+'letra música artista');
+ const query=encodeURIComponent(q+' letra');
+ await ctx.reply('🎵 Busca de letra: '+q+'\nhttps://www.google.com/search?q='+query+'%20site%3Aletras.mus.br\nhttps://www.google.com/search?q='+query+'%20site%3Agenius.com');
+}});
