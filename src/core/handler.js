@@ -29,8 +29,17 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   // authenticated account ID to determine permissions, not the chat target.
   const sender = msg.key.fromMe ? sock.user?.id : (group ? msg.key.participant : chat);
   if (!sender) return;
-  const owner = isOwner(sender, config.owners);
-  const admin = isBotAdmin(sender, config.botAdmins, config.owners);
+  const candidates = msg.key.fromMe ? [sock.user?.id, sock.user?.phoneNumber] : [sender, group ? msg.key.participantAlt : msg.key.remoteJidAlt];
+  const phones = candidates.filter(j => typeof j === 'string' && /@s\.whatsapp\.net$/.test(j));
+  for (const jid of candidates) {
+    if (typeof jid !== 'string' || !/@lid$/.test(jid)) continue;
+    try {
+      const pn = await sock.signalRepository?.lidMapping?.getPNForLID?.(jid);
+      if (typeof pn === 'string' && pn.endsWith('@s.whatsapp.net')) phones.push(pn);
+    } catch { /* Fail closed if mapping is unavailable. */ }
+  }
+  const owner = phones.some(j => isOwner(j, config.owners));
+  const admin = owner || phones.some(j => isBotAdmin(j, config.botAdmins, config.owners));
   if (!owner && !limiter.allow(sender)) { if (config.activityMonitor) activity(logger, 'rate-limited', { command: command.name }); return; }
   if (config.activityMonitor) activity(logger, 'command', { command: command.name, chatType: chatKind(chat), own: !!msg.key.fromMe });
   // Self-chat messages can be echoed with different LID/PN identifiers.
