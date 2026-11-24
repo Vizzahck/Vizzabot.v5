@@ -5,7 +5,7 @@ let queue=Promise.resolve();
 export async function ownerState(){
  try{return JSON.parse(await readFile(path,'utf8'));}catch(e){if(e.code==='ENOENT')return {};throw e;}
 }
-function change(fn){
+export function change(fn){
  const task=queue.then(async()=>{const s=await ownerState();fn(s);await writeFile(path+'.tmp',JSON.stringify(s,null,2),{mode:0o600});await rename(path+'.tmp',path);});
  queue=task.catch(()=>{});return task;
 }
@@ -38,5 +38,5 @@ export const ownerRestored=[
  ...['block','unblock'].map(name=>cmd(name,[],'Gerencia bloqueio de contato',async c=>{const id=number(c);if(!id)return c.reply('Informe DDI e número.');await c.sock.updateBlockStatus(id,name);await c.reply('Contato atualizado.');})),
  cmd('entrar',[],'Entra em grupo por convite',async c=>{const m=text(c).match(/^https:\/\/chat\.whatsapp\.com\/([A-Za-z0-9_-]{15,40})$/);if(!m)return c.reply('Informe um convite válido.');await c.sock.groupAcceptInvite(m[1]);await c.reply('Convite aceito.');}),
  cmd('sairgp2',[],'Sai de um grupo pelo ID',async c=>{const id=c.args[0];if(!/^[\d-]+@g\.us$/.test(id||'')||c.args[1]!=='confirmar')return c.reply('Uso: '+c.config.prefix+'sairgp2 ID confirmar');const groups=await c.sock.groupFetchAllParticipating();if(!groups[id])return c.reply('Grupo não encontrado.');await c.sock.groupLeave(id);await c.reply('Grupo removido.');}),
- cmd('serpremium',[],'Consulta cadastro premium do proprietário',async c=>{const s=await ownerState();await c.reply((s.premium||[]).includes(c.sender)?'Premium ativo.':'Premium não cadastrado.');})
+
 ];
