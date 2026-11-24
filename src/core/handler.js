@@ -40,6 +40,9 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   }
   const owner = phones.some(j => isOwner(j, config.owners));
   const admin = owner || phones.some(j => isBotAdmin(j, config.botAdmins, config.owners));
+  if (command.ownerOnly && !owner) {
+    logger.warn({ fromMe: !!msg.key.fromMe, senderDomain: sender.split('@')[1], accountDomain: sock.user?.id?.split('@')[1], alternatePresent: !!(group ? msg.key.participantAlt : msg.key.remoteJidAlt), phoneCandidates: phones.length, configuredOwners: config.owners.length, mappingAvailable: typeof sock.signalRepository?.lidMapping?.getPNForLID === 'function' }, 'Diagnostico de proprietario');
+  }
   if (!owner && !limiter.allow(sender)) { if (config.activityMonitor) activity(logger, 'rate-limited', { command: command.name }); return; }
   if (config.activityMonitor) activity(logger, 'command', { command: command.name, chatType: chatKind(chat), own: !!msg.key.fromMe });
   // Self-chat messages can be echoed with different LID/PN identifiers.
