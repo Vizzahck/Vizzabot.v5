@@ -16,6 +16,7 @@ export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
 export async function sendMenu(ctx,options={}){
  const settings=await ownerState();
  const caption=menuText(ctx,options).replace('✦ V I Z Z A B O T ✦',()=>settings.menuTitle||'✦ V I Z Z A B O T ✦').replace('✦ *VIZZABOT V5* ✦',()=>settings.menuFooter||'✦ *VIZZABOT V5* ✦');
+ if(settings.menuTextOnly)return ctx.reply(caption);
  const url=process.env.MENU_LOGO_URL?.trim()||MENU_IMAGE;
  try{
   const opts=ctx.msg.key?.fromMe&&!ctx.chat.endsWith('@g.us')?undefined:{quoted:ctx.msg};
