@@ -1,3 +1,4 @@
+import { ownerState } from '../commands/owner/restored.js';
 import { extractText, parseCommand } from './parser.js';
 import { isOwner, isBotAdmin } from './permissions.js';
 import { moderateMessage } from './moderation.js';
@@ -38,6 +39,9 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   const reply = async text => sock.sendMessage(chat, { text }, selfChat ? undefined : { quoted: msg });
   if (command.ownerOnly && !owner) { if (config.activityMonitor) activity(logger, 'denied', { command: command.name }); return reply('⛔ Comando exclusivo do proprietário.'); }
   try {
+    const settings=await ownerState();
+    if(!owner && (settings.enabled===false || settings.receive===false || settings.blockedCommands?.includes(command.name) || settings.blockedUsers?.includes(sender))) return;
+    if(!owner && !group && settings.privateNotice) return reply(settings.privateText || 'Atendimento privado indisponível.');
     await command.execute({ sock, msg, chat, sender, args: parsed.args, reply, isOwner: owner, isBotAdmin: admin, config, registry, store, logger });
     if (config.activityMonitor) activity(logger, 'command-completed', { command: command.name });
   } catch (error) {
