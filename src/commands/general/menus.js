@@ -11,6 +11,6 @@ const menus = [
   { name: 'menupremium', aliases: [], category: 'Premium', title: '⭐ PREMIUM' }
 ];
 export const categoryMenus = menus.map(({ name, aliases, category, title }) => ({
-  name, aliases, category: 'Menus', description: 'Abre '+title,
+  name, aliases, ownerOnly: name === 'menudono', category: 'Menus', description: 'Abre '+title,
   async execute(ctx) { await sendMenu(ctx,{category,title}); }
 }));
