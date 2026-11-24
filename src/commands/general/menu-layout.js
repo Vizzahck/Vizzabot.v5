@@ -9,7 +9,7 @@ export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
  const p=ctx.config.prefix;
  const lines=['╭━━━〔 ✦ V I Z Z A B O T ✦ 〕━━━╮','┃ '+(CATEGORY_ICONS[category]||'⚡')+' *'+title+'*','┣━━━━━━━━━━━━━━━━━━━━━━','┃ 🤖 '+ctx.config.name,'┃ 👑 '+(ctx.config.ownerName||'Proprietário'),'┃ ⌨️ Prefixo: '+p,'┃ 📚 Comandos: '+cmds.length,'╰━━━━━━━━━━━━━━━━━━━━━━╯'];
  if(!cmds.length)lines.push('⏳ Nenhuma função disponível nesta categoria.');
- for(const [name,list] of groups){lines.push('','╭━━〔 '+(CATEGORY_ICONS[name]||'📁')+' *'+name.toUpperCase()+'* 〕━━╮');for(const cmd of list)lines.push('┃ ✧ '+p+cmd.name);lines.push('╰━━━━━━━━━━━━━━━━━━━━━━╯');}
+ for(const [name,list] of groups){lines.push('','╭━━〔 '+(CATEGORY_ICONS[name]||'📁')+' *'+name.toUpperCase()+'* 〕━━╮');for(const cmd of list)lines.push('┃ ✧ '+p+cmd.name+((category==='Pesquisa e Downloads'||category==='Proprietário')&&cmd.aliases?.length?' ('+cmd.aliases.map(a=>p+a).join(', ')+')':''));lines.push('╰━━━━━━━━━━━━━━━━━━━━━━╯');}
  lines.push('','🔎 Detalhes: *'+p+'infocmd nome_do_comando*','','✦ *VIZZABOT V5* ✦');
  return lines.join('\n');
 }
