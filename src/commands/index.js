@@ -1,3 +1,4 @@
+import { personalization } from './owner/personalization.js';
 import { ownerRestored } from './owner/restored.js';
 import { restoredMedia } from './stickers/restored-media.js';
 import { restoredGames } from './games/restored-v4.js';
@@ -46,7 +47,7 @@ import { v4QuickCommands } from './fun/v4-quick.js';
 import { practicalBatch } from './general/practical-batch.js';
 import { v4ExtraCommands } from './general/v4-extra-batch.js';
 import { dailyBatch } from './general/daily-batch.js';
-const baseCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames, ...restoredMedia, ...ownerRestored];
+const baseCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames, ...restoredMedia, ...ownerRestored, ...personalization];
 
 const legacyAliases = {
  sticker:['st','stk'], extrairtexto:['totext','ler','lerfoto'], linkimg:['gerarlink','imgpralink'],
