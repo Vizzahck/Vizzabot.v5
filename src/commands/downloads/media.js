@@ -36,8 +36,8 @@ export async function inspect(target){
  return info;
 }
 export async function download(target,kind,dir){const template=join(dir,'media.%(ext)s');const args=['--no-playlist','--no-warnings','--max-filesize','45M','--output',template];if(kind==='audio')args.push('-x','--audio-format','mp3','--audio-quality','5');else args.push('-f','bv*[height<=720]+ba/b[height<=720]/b','--merge-output-format','mp4','--recode-video','mp4');args.push(target);await run('yt-dlp',args,{timeoutMs:180000,maxOutput:4*1024*1024});const names=(await readdir(dir)).filter(x=>x.startsWith('media.')&&!x.endsWith('.part'));if(!names.length)throw Error('Arquivo não encontrado após download');const file=join(dir,names[0]);if((await stat(file)).size>MAX_BYTES)throw Error('Arquivo maior que 45 MB');return {buffer:await readFile(file),name:names[0]};}
-export const mediaCommands=['play','video'].map(kind=>({
- name:kind,aliases:kind==='play'?['musica','audio','ytmp3']:['ytmp4','videoyt'],category:'Pesquisa e Downloads',
+export const mediaCommands=['play','video','mp4'].map(kind=>({
+ name:kind,aliases:kind==='play'?['musica','audio','ytmp3']:kind==='video'?['ytmp4','videoyt']:[],category:'Pesquisa e Downloads',
  description:kind==='play'?'Baixa áudio por link ou nome':'Baixa vídeo por link ou nome',
  async execute(ctx){
   const search=ctx.args.join(' ').trim();
@@ -48,7 +48,7 @@ export const mediaCommands=['play','video'].map(kind=>({
    await ctx.reply('🔎 Procurando mídia, aguarde...');
    const info=await inspect(target);
    const url=info.webpage_url&&isHttpUrl(info.webpage_url)?info.webpage_url:target;
-   const caption=formatInfo(info);
+   const caption=formatInfo(info)+(kind==='mp4'?'\n📝 *Descrição:* '+String(info.description||'Não informada').slice(0,650):'');
    // Self-chat replies should not quote messages from the same account.
    const sendOptions=ctx.msg.key?.fromMe && !ctx.chat.endsWith('@g.us') ? undefined : {quoted:ctx.msg};
    if(kind==='play'&&info.thumbnail&&isHttpUrl(info.thumbnail)){
