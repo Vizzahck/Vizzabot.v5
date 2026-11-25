@@ -14,6 +14,14 @@ const registry = createRegistry(commands);
 const store = openDatabase();
 terminalBanner({name:config.name,ownerName:config.ownerName,ownerNumbers:config.owners,prefix:config.prefix,commands:commands.length});
 let reconnectTimer;
+const seenMessageIds = new Set();
+let cachedVersion;
+function scheduleReconnect(){
+ if(stopping)return;
+ clearTimeout(reconnectTimer);
+ const delay=Math.min(60000,5000*2**Math.min(reconnectAttempts++,4));
+ reconnectTimer=setTimeout(()=>connect().catch(err=>{logger.error({err},'Reconexão falhou');scheduleReconnect();}),delay);
+}
 let reconnectAttempts = 0;
 let currentSocket;
 let stopping = false;
@@ -27,11 +35,11 @@ async function connect() {
     pairingNumber = await askPairingNumber();
     console.log('Número de pareamento: ' + pairingNumber.slice(0, 4) + '*****' + pairingNumber.slice(-2));
   }
-  const { version } = await fetchLatestBaileysVersion();
-  const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false, connectTimeoutMs: 60000, defaultQueryTimeoutMs: 90000, keepAliveIntervalMs: 30000 });
+  if(!cachedVersion){try{cachedVersion=(await fetchLatestBaileysVersion()).version;}catch{logger.warn('Versão remota indisponível; usando padrão do Baileys');}}
+  const version=cachedVersion;
+  const sock = makeWASocket({ auth: state, ...(version?{version}:{}), logger, printQRInTerminal: false, markOnlineOnConnect: false, connectTimeoutMs: 60000, defaultQueryTimeoutMs: 90000, keepAliveIntervalMs: 30000 });
   currentSocket = sock;
   const sentIds = trackOutgoingMessages(sock);
-  const seenMessageIds = new Set();
   let inboundCount = 0;
   let decryptedCount = 0;
   let pairingRequested = false;
@@ -56,6 +64,7 @@ async function connect() {
     }
   });
   sock.ev.on('group-participants.update', event => {
+    if(currentSocket!==sock||stopping)return;
     handleGroupParticipants(sock, event, store, logger).catch(err => logger.error({ err }, 'Falha em evento de grupo'));
   });
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
@@ -100,10 +109,8 @@ async function connect() {
         console.error('Pareamento não concluído. Para solicitar outro código, execute: bash termux/reset-pairing.sh');
         return;
       }
-      const delay = Math.min(60000, 5000 * (2 ** Math.min(reconnectAttempts++, 4)));
-      logger.warn({ status, delay }, 'Desconectado; reconexão agendada');
-      clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(() => connect().catch(err => logger.error({ err }, 'Reconexão falhou')), delay);
+      logger.warn({status}, 'Desconectado; reconexão automática com sessão existente');
+      scheduleReconnect();
     }
   });
 }
