@@ -16,5 +16,19 @@ export const ownerExtras=[
  cmd('menutexto','Alterna menu somente texto: on/off',async c=>{
  const v=c.args[0];if(!['on','off'].includes(v))return c.reply('Use on ou off.');
  await change(s=>{s.menuTextOnly=v==='on';});await c.reply('Configuração salva.');
+ }),
+ cmd('configbot','Consulta configurações operacionais do bot',async c=>{
+ const s=await ownerState();
+ await c.reply(['⚙️ Configurações do bot','Ativo: '+(s.enabled!==false?'Sim':'Não'),'Recepção: '+(s.receive!==false?'Sim':'Não'),'Aviso privado: '+(s.privateNotice?'Sim':'Não'),'Menu texto: '+(s.menuTextOnly?'Sim':'Não'),'Comandos bloqueados: '+(s.blockedCommands||[]).length,'Premium: '+(s.premium||[]).length].join('\n'));
+ }),
+ cmd('listagp','Lista grupos participantes',async c=>{
+ const groups=Object.values(await c.sock.groupFetchAllParticipating());
+ const page=Math.max(1,Math.floor(Number(c.args[0])||1));
+ const rows=groups.slice((page-1)*15,page*15).map(g=>String(g.subject||'Sem nome').slice(0,100)+' — '+g.id);
+ await c.reply('Grupos: '+groups.length+' | Página '+page+'\n'+(rows.join('\n')||'Sem resultados.'));
+ }),
+ cmd('limparblockcmd','Libera todos os comandos públicos bloqueados',async c=>{
+ if(c.args[0]!=='confirmar')return c.reply('Use limparblockcmd confirmar.');
+ await change(s=>{s.blockedCommands=[];});await c.reply('Bloqueios de comandos removidos.');
  })
 ];
