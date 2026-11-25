@@ -15,6 +15,11 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   const group = chat.endsWith('@g.us');
   if ((group && !config.allowGroups) || (!group && !config.allowPrivate)) return;
   if (config.activityMonitor) activity(logger, 'received', { chatType: chatKind(chat), messageType: messageKind(msg.message), own: !!msg.key.fromMe });
+  if(group&&!msg.key.fromMe&&msg.key.participant){
+    store.db.exec('CREATE TABLE IF NOT EXISTS group_activity (jid TEXT NOT NULL,member TEXT NOT NULL,messages INTEGER NOT NULL DEFAULT 0,commands INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(jid,member))');
+    const isCommand=Number(!!parseCommand(extractText(msg.message),config.prefix));
+    store.db.prepare('INSERT INTO group_activity(jid,member,messages,commands) VALUES (?,?,1,?) ON CONFLICT(jid,member) DO UPDATE SET messages=messages+1,commands=commands+excluded.commands').run(chat,msg.key.participant,isCommand);
+  }
   if (await moderateMessage(sock, msg, store, logger, config)) { if (config.activityMonitor) activity(logger, 'moderated', { chatType: chatKind(chat) }); return; }
   const parsed = parseCommand(extractText(msg.message), config.prefix);
   if (!parsed) {
