@@ -22,7 +22,9 @@ export async function moderateMessage(sock,msg,store,logger,config={}){
  const settings=store.group(chat);
  const flag=activeMediaFilter(msg.message,settings);
  const messageText=extractText(msg.message);
- const link=settings.antilink&&linkPattern.test(messageText);
+ store.db.exec('CREATE TABLE IF NOT EXISTS group_modes (jid TEXT NOT NULL,mode TEXT NOT NULL,enabled INTEGER NOT NULL,PRIMARY KEY(jid,mode))');
+ const modes=new Set(store.db.prepare('SELECT mode FROM group_modes WHERE jid=? AND enabled=1').all(chat).map(r=>r.mode));
+ const link=(settings.antilink||modes.has('antilinkhard')||modes.has('antilink_adv'))&&linkPattern.test(messageText);
  const blocked=settings.antipalavra?matchesBlockedWord(messageText,blockedWords(store.db,chat)):null;
  store.db.exec('CREATE TABLE IF NOT EXISTS group_mutes (jid TEXT NOT NULL, member TEXT NOT NULL, expires INTEGER NOT NULL, PRIMARY KEY(jid,member))');
  const muted=!!store.db.prepare('SELECT 1 FROM group_mutes WHERE jid=? AND member=? AND expires>?').get(chat,msg.key.participant||'',Date.now());
@@ -34,6 +36,10 @@ export async function moderateMessage(sock,msg,store,logger,config={}){
   if(roles.admin||!roles.botAdmin)return false;
   await sock.sendMessage(chat,{delete:msg.key});
   if(muted)return true;
+  if(link&&modes.has('antilinkhard')){
+   await sock.sendMessage(chat,{text:'Link bloqueado. Consulte as regras do grupo.'});
+   return true;
+  }
   const count=store.warn(chat,sender);
   await sock.sendMessage(chat,{text:'⚠️ '+(flag?'Mídia bloqueada ('+flag+').':blocked?'Palavra bloqueada.':'Link removido.')+' Avisos registrados: '+count+'.'});
   return true;
