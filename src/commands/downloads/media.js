@@ -127,3 +127,25 @@ export const repositoryCommands=[{
  }catch{await ctx.reply('Não consegui obter o ZIP público (limite de 45 MB).');}
  }
 }];
+
+export const instagramImageCommands=['ig-img','ig-image','insta-imagem'].map(name=>({
+ name,aliases:[],category:'Pesquisa e Downloads',description:'Obtém imagens de publicação pública do Instagram via gallery-dl',
+ async execute(ctx){
+ const input=ctx.args.join(' ').trim();
+ const match=input.match(/^https:\/\/(?:www\.)?instagram\.com\/p\/([A-Za-z0-9_-]{3,40})\/?(?:\?[^#\s]*)?$/);
+ if(!match)return ctx.reply('Informe o link de uma publicação pública do Instagram.');
+ let dir;
+ try{
+ dir=await mkdtemp(join(tmpdir(),'vizzabot-ig-'));
+ await run('gallery-dl',['--ignore-config','--no-input','--range','1-5','-D',dir,'https://www.instagram.com/p/'+match[1]+'/'],{timeoutMs:60000});
+ const files=(await readdir(dir)).filter(n=>/\.(jpg|jpeg|png)$/i.test(n)).slice(0,5);
+ if(!files.length)return ctx.reply('Nenhuma imagem disponível nessa publicação.');
+ for(const name of files){
+ const file=join(dir,name);
+ if((await stat(file)).size>8*1024*1024)continue;
+ await ctx.sock.sendMessage(ctx.chat,{image:await readFile(file)});
+ }
+ }catch{await ctx.reply('Não foi possível obter imagens públicas. Confira se gallery-dl está instalado e se a publicação está acessível sem login.');}
+ finally{if(dir)await rm(dir,{recursive:true,force:true}).catch(()=>{});}
+ }
+}));
