@@ -56,7 +56,7 @@ const searchSafe=searchConflicts?allCommands.filter(c=>c!==mediaCommands.find(m=
 const doc=mediaCommands.find(m=>m.name==='ytdoc');
 const baseCommands=searchSafe.filter(c=>c!==doc||!searchSafe.some(other=>other!==doc&&[other.name,...(other.aliases||[])].includes('ytdoc')));
 const legacyAliases = {
- play:['play2','play3','play_audio'], video:['play_video'],
+ play:['play2','play3','play_audio','tiktok_audio'], video:['play_video','tiktok_video','tiktok','instagram','insta','facebook','twitter'],
  sticker:['st','stk'], extrairtexto:['totext','ler','lerfoto'], linkimg:['gerarlink','imgpralink'],
  perfil:['me','my-info'], saldo:['my'], ranking:['rankcoins'], inventario:['itensrpg'],
  minerar:['extrair-minerio'], tesouro:['buscar-tesouros','caçar-tesouro'],
