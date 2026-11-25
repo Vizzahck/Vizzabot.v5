@@ -184,3 +184,30 @@ groupTools.push({name:'configgp',category:'Administração',description:'Mostra 
  const flags=['welcome','antilink','antisticker','antiaudio','antivideo','antiimagem','antipalavra'];
  await ctx.reply('⚙️ Configurações do grupo\n'+[...flags.map(k=>k+': '+(settings[k]?'ON':'OFF')),...modes.map(r=>r.mode+': '+(r.enabled?'ON':'OFF'))].join('\n'));
 }});
+
+groupTools.push(...['atividade','inativos','rankativo','checkativo','resetatividade'].map(name=>({
+ name,aliases:name==='atividade'?['atividades']:name==='rankativo'?['rankativos']:[],category:'Administração',description:'Consulta ou gerencia contadores de atividade do grupo',
+ async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ const db=ctx.store.db;
+ db.exec('CREATE TABLE IF NOT EXISTS group_activity (jid TEXT NOT NULL,member TEXT NOT NULL,messages INTEGER NOT NULL DEFAULT 0,commands INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(jid,member))');
+ if(name==='resetatividade'){
+ if(ctx.args[0]!=='confirmar')return ctx.reply('Uso: resetatividade confirmar');
+ db.prepare('DELETE FROM group_activity WHERE jid=?').run(ctx.chat);return ctx.reply('Contadores zerados.');
+ }
+ const meta=await ctx.sock.groupMetadata(ctx.chat);
+ const records=new Map(db.prepare('SELECT member,messages,commands FROM group_activity WHERE jid=?').all(ctx.chat).map(r=>[r.member,r]));
+ let rows=meta.participants.map(p=>({member:p.id,messages:0,commands:0,...records.get(p.id)}));
+ if(name==='checkativo'){
+ const target=ctx.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+ if(!target)return ctx.reply('Marque um membro.');
+ rows=rows.filter(r=>r.member===target);
+ }else if(name==='inativos')rows=rows.filter(r=>r.messages<=1);
+ else if(name==='rankativo')rows=rows.filter(r=>r.messages>0).sort((a,b)=>b.messages-a.messages||b.commands-a.commands).slice(0,10);
+ const page=Math.max(1,Math.min(1000,Number.parseInt(ctx.args[0],10)||1));
+ const shown=rows.slice((page-1)*20,page*20);
+ await ctx.reply('📊 '+name+' — página '+page+'/'+Math.max(1,Math.ceil(rows.length/20))+'\nDados desde a ativação desta versão ou último reset.\n'+(shown.map(r=>r.member.split('@')[0]+' | Mensagens: '+r.messages+' | Comandos: '+r.commands).join('\n')||'Nenhum resultado.'));
+ }
+})));
