@@ -178,3 +178,17 @@ export const finalDownloadCommands=[{
  }
 }];
 
+
+finalDownloadCommands.push({
+ name:'qrcode',aliases:['linkqr'],category:'Pesquisa e Downloads',description:'Transforma link HTTP ou HTTPS em QR Code local',
+ async execute(ctx){
+ const value=ctx.args.join(' ').trim();let url;
+ try{url=new URL(value);}catch{return ctx.reply('Uso: '+ctx.config.prefix+'qrcode https://exemplo.com');}
+ if(!['http:','https:'].includes(url.protocol)||url.username||url.password||value.length>1000)return ctx.reply('Informe um link HTTP ou HTTPS válido de até 1000 caracteres.');
+ try{
+ const {default:QR}=await import('qrcode');
+ const image=await QR.toBuffer(value,{type:'png',width:768,margin:4,errorCorrectionLevel:'M'});
+ await ctx.sock.sendMessage(ctx.chat,{image,caption:'QR Code gerado. Confira o endereço antes de abrir: '+value});
+ }catch{await ctx.reply('Não foi possível gerar o QR Code. Confira se as dependências estão instaladas.');}
+ }
+});
