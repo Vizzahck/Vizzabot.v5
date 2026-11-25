@@ -7,7 +7,7 @@ export async function handleGroupParticipants(sock, event, store, logger) {
   for (const jid of event.participants || []) {
     try {
       const key=event.action==='remove'?'farewell':'welcome';
-      const text=key==='farewell'?(settings.farewellText||'Até logo!'):(settings.welcomeText||'👋 Boas-vindas ao grupo! Leia as regras e divirta-se.');
+      const text=key==='farewell'?(settings.farewellText||'Até logo!'):((settings.welcomeSecond&&settings.welcomeText2?settings.welcomeText2:settings.welcomeText)||'👋 Boas-vindas ao grupo! Leia as regras e divirta-se.');
       const image=settings[key+'Image']?await readFile('data/'+key+'-custom.jpg').catch(()=>null):null;
       await sock.sendMessage(event.id,image?{image,caption:text}:{text});
     } catch (err) { logger.warn({ err }, 'Falha nas boas-vindas'); }
