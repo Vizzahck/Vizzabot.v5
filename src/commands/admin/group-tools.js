@@ -172,3 +172,15 @@ groupTools.push(...['blockcmdgp','unblockcmdgp','listblockcmdgp'].map(name=>({
  await ctx.reply('Configuração atualizada: '+command.name);
  }
 })));
+
+groupTools.push({name:'configgp',category:'Administração',description:'Mostra configurações administrativas do grupo',async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ const db=ctx.store.db;
+ db.exec('CREATE TABLE IF NOT EXISTS group_modes (jid TEXT NOT NULL,mode TEXT NOT NULL,enabled INTEGER NOT NULL,PRIMARY KEY(jid,mode))');
+ const modes=db.prepare('SELECT mode,enabled FROM group_modes WHERE jid=? ORDER BY mode').all(ctx.chat);
+ const settings=ctx.store.group(ctx.chat);
+ const flags=['welcome','antilink','antisticker','antiaudio','antivideo','antiimagem','antipalavra'];
+ await ctx.reply('⚙️ Configurações do grupo\n'+[...flags.map(k=>k+': '+(settings[k]?'ON':'OFF')),...modes.map(r=>r.mode+': '+(r.enabled?'ON':'OFF'))].join('\n'));
+}});
