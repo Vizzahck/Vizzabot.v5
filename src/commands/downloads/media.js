@@ -149,3 +149,26 @@ export const instagramImageCommands=['ig-img','ig-image','insta-imagem'].map(nam
  finally{if(dir)await rm(dir,{recursive:true,force:true}).catch(()=>{});}
  }
 }));
+
+export const finalDownloadCommands=[{
+ name:'videopralink',aliases:[],category:'Pesquisa e Downloads',description:'Hospeda vídeo próprio com confirmação explícita',
+ async execute(ctx){
+ if(!ctx.config.imageLinksEnabled)return ctx.reply('Hospedagem pública desativada na configuração local.');
+ const m=ctx.msg.message?.ephemeralMessage?.message||ctx.msg.message||{};
+ const video=m.videoMessage;
+ if(!video||ctx.args.join(' ').trim()!=='confirmar')return ctx.reply('Envie seu próprio vídeo com a legenda !videopralink confirmar. O arquivo ficará público; não envie conteúdo privado ou de terceiros.');
+ const limit=8*1024*1024;
+ if(Number(video.fileLength)>limit||video.mimetype!=='video/mp4')return ctx.reply('Somente MP4 de até 8 MB.');
+ try{
+ const {downloadContentFromMessage}=await import('@whiskeysockets/baileys');
+ const stream=await downloadContentFromMessage(video,'video');
+ let size=0;const chunks=[];
+ for await(const chunk of stream){size+=chunk.length;if(size>limit){stream.destroy?.();throw Error('Limite excedido');}chunks.push(chunk);}
+ const form=new FormData();form.append('reqtype','fileupload');form.append('fileToUpload',new Blob(chunks,{type:'video/mp4'}),'video.mp4');
+ const res=await fetch('https://catbox.moe/user/api.php',{method:'POST',body:form,signal:AbortSignal.timeout(30000),redirect:'error'});
+ const url=(await res.text()).trim();
+ if(!res.ok||!/^https:\/\/files\.catbox\.moe\/[A-Za-z0-9._-]+$/.test(url))throw Error('Upload recusado');
+ await ctx.reply('Link público: '+url);
+ }catch{await ctx.reply('Não foi possível hospedar o vídeo.');}
+ }
+}];
