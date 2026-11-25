@@ -25,6 +25,42 @@ async function picture(ctx,svg,caption){
 }
 const wallpaperNames=[['walpaperanime',['wallpaperanime'],'Paisagem ilustrada'],['walpapertecnológico',['walpapertecnologico','wallpapertecnologico'],'Arte tecnológica'],['walpapergaming',['wallpapergaming'],'Arte pixel gaming']];
 export const premiumUtilities=[
+ premium('get','Mostra tipo e texto da mensagem citada, sem dados internos',async c=>{
+  const m=c.msg.message?.ephemeralMessage?.message||c.msg.message||{};
+  const q=Object.values(m).find(v=>v?.contextInfo?.quotedMessage)?.contextInfo?.quotedMessage;
+  if(!q)return c.reply('Responda a uma mensagem.');
+  const allowed=['conversation','extendedTextMessage','imageMessage','videoMessage','audioMessage','stickerMessage','documentMessage'];
+  const kind=allowed.find(k=>q[k]);
+  if(!kind)return c.reply('Tipo de mensagem não compatível.');
+  const text=typeof q[kind]==='string'?q[kind]:q[kind]?.text||q[kind]?.caption||'';
+  await c.reply('Tipo: '+kind+(text?'\nTexto: '+String(text).slice(0,1500):''));
+ }),
+ premium('mediafire','Baixa documentos e mídias públicas do MediaFire (até 20 MB)',async c=>{
+  let url;try{url=new URL(c.args[0]);}catch{return c.reply('Informe um link público de arquivo do MediaFire.');}
+  if(url.protocol!=='https:'||!['www.mediafire.com','mediafire.com'].includes(url.hostname)||url.username||url.password||url.port||!/^\/file\/[a-zA-Z0-9]+(?:\/|$)/.test(url.pathname))return c.reply('Use um link HTTPS de arquivo do MediaFire.');
+  const canonical='https://www.mediafire.com'+url.pathname;
+  const html=await readPublic(canonical,1024*1024);
+  const a=html.match(/<a\b[^>]*\bid\s*=\s*["']downloadButton["'][^>]*>/i)?.[0];
+  const href=a?.match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
+  if(!href)return c.reply('Não encontrei o botão de download público. Abra o link original: '+canonical);
+  const direct=new URL(href.replace(/&amp;/g,'&'));
+  if(direct.protocol!=='https:'||!/^download[a-z0-9-]*\.mediafire\.com$/.test(direct.hostname)||direct.username||direct.password||direct.port)return c.reply('Endereço de download não reconhecido.');
+  const filename=decodeURIComponent(direct.pathname.split('/').at(-1)||'').replace(/[\x00-\x1f\x7f/\\]/g,'_').slice(0,120);
+  const ext=filename.split('.').at(-1).toLowerCase();
+  const types={pdf:'application/pdf',txt:'text/plain',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',mp3:'audio/mpeg',mp4:'video/mp4'};
+  if(!Object.hasOwn(types,ext))return c.reply('O envio automático aceita PDF, TXT, imagens, MP3 e MP4. Confira outros arquivos diretamente no MediaFire.');
+  if(c.args[1]!=='confirmar')return c.reply('Arquivo: '+filename+'\nEnvie novamente o comando com confirmar se você tem autorização para compartilhar esse arquivo.');
+  const limit=20*1024*1024;
+  const res=await fetch(direct,{signal:AbortSignal.timeout(45000),redirect:'error'});
+  if(!res.ok||Number(res.headers.get('content-length'))>limit){await res.body?.cancel();return c.reply('Arquivo indisponível ou acima de 20 MB.');}
+  const mime=(res.headers.get('content-type')||'').split(';')[0].trim();
+  if(mime&&mime!=='application/octet-stream'&&mime!==types[ext]){await res.body?.cancel();return c.reply('Formato de arquivo incompatível.');}
+  const parts=[];let size=0;
+  for await(const chunk of res.body){size+=chunk.length;if(size>limit)throw Error('Arquivo grande');parts.push(chunk);}
+  if(!size)throw Error('Arquivo vazio');
+  await c.sock.sendMessage(c.chat,{document:Buffer.concat(parts),fileName:filename,mimetype:types[ext]});
+ }),
+
  premium('bot','Estatísticas do bot',async c=>{
   const u=Math.floor(process.uptime()),m=process.memoryUsage();
   await c.reply('🤖 Bot online\nAtividade: '+Math.floor(u/3600)+'h '+Math.floor(u%3600/60)+'min '+u%60+'s\nHeap usado: '+(m.heapUsed/1048576).toFixed(1)+' MB\nHeap total: '+(m.heapTotal/1048576).toFixed(1)+' MB');
