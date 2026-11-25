@@ -90,6 +90,6 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   } catch (error) {
     logger.error({ err: error, command: command.name }, 'Falha no comando');
     if (config.activityMonitor) activity(logger, 'command-failed', { command: command.name });
-    await reply('⚠️ Não consegui executar este comando.');
+    await reply('⚠️ Não consegui executar este comando.').catch(()=>logger.warn('Não foi possível enviar aviso de falha; conexão indisponível.'));
   }
 }
