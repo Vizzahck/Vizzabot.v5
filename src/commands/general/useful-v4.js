@@ -20,7 +20,22 @@ export const usefulV4Commands=[
  {name:'ddd',category:'Ferramentas',description:'Consulta a região aproximada de um DDD brasileiro',async execute(ctx){
   const ddd=ctx.args[0]?.replace(/\D/g,'');
   if(!/^\d{2}$/.test(ddd||''))return ctx.reply('Uso: '+ctx.config.prefix+'ddd 98');
-  await ctx.reply(dddLookup(ddd)?'📞 DDD '+ddd+': '+dddLookup(ddd)+'\nObs.: indica região de origem, não localização atual.':'DDD não reconhecido.');
+  const region=dddLookup(ddd);
+  if(!region)return ctx.reply('DDD não reconhecido.');
+  try{
+   const response=await fetch('https://brasilapi.com.br/api/ddd/v1/'+ddd,{signal:AbortSignal.timeout(8000),redirect:'error'});
+   if(!response.ok)throw Error('HTTP '+response.status);
+   const chunks=[];let size=0;
+   for await(const chunk of response.body){size+=chunk.length;if(size>256*1024)throw Error('Resposta grande');chunks.push(chunk);}
+   const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+   if(!Array.isArray(data.cities)||!data.cities.length)throw Error('Sem cidades');
+   const cities=data.cities.filter(c=>typeof c==='string').sort((a,b)=>a.localeCompare(b,'pt'));
+   const page=Number(ctx.args[1]||1),pages=Math.max(1,Math.ceil(cities.length/30));
+   if(!Number.isInteger(page)||page<1||page>pages)return ctx.reply('Página válida: 1 a '+pages+'.');
+   await ctx.reply('📞 DDD '+ddd+' — '+String(data.state||region)+'\nCidades: '+cities.length+' | Página '+page+'/'+pages+'\n'+cities.slice((page-1)*30,page*30).join('\n')+'\nObs.: DDD indica região de origem, não localização atual.');
+   return;
+  }catch{}
+  await ctx.reply('📞 DDD '+ddd+': '+region+'\nConsulta de cidades indisponível. Região de origem aproximada.');
  }},
  {name:'google',aliases:['pesquisargoogle'],category:'Pesquisa e Downloads',description:'Gera link de pesquisa no Google sem API paga',async execute(ctx){
   const query=ctx.args.join(' ').trim();
