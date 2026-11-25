@@ -131,8 +131,5 @@ export const ownerExtras=[
  if(!id||!Number.isSafeInteger(n)||n<1||n>1000)return c.reply('Marque um usuário e informe de 1 a 1000 níveis.');
  c.store.user(id);c.store.db.prepare('UPDATE users SET xp=xp+? WHERE jid=?').run(n*100,id);
  await c.reply('Nível atualizado: '+(1+Math.floor(c.store.user(id).xp/100)));
- }),
- cmd('reviverqr','Orienta recuperação segura da conexão',async c=>{
- await c.reply('Se a conexão cair, a reconexão é automática. Se a sessão for recusada, pare o bot no Termux e use bash termux/reset-pairing.sh. Nunca compartilhe o código de vinculação.');
  })
 ];
