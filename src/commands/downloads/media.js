@@ -177,3 +177,26 @@ export const finalDownloadCommands=[{
  }catch{await ctx.reply('Não foi possível hospedar o vídeo.');}
  }
 }];
+
+export const recognitionCommands=[{
+ name:'shazam',aliases:[],category:'Pesquisa e Downloads',description:'Identifica música em áudio enviado pelo usuário (AudD)',
+ async execute(ctx){
+ const token=process.env.AUDD_API_TOKEN;
+ if(!token)return ctx.reply('Reconhecimento musical não configurado pelo administrador.');
+ const m=ctx.msg.message?.ephemeralMessage?.message||ctx.msg.message||{};
+ const audio=m.audioMessage||m.extendedTextMessage?.contextInfo?.quotedMessage?.audioMessage;
+ if(!audio||ctx.args.join(' ').trim()!=='confirmar')return ctx.reply('Responda ao seu próprio áudio com !shazam confirmar. O áudio será enviado ao serviço AudD.');
+ if(Number(audio.fileLength)>5*1024*1024||Number(audio.seconds)>20)return ctx.reply('Limite: 5 MB e 20 segundos.');
+ try{
+ const {downloadContentFromMessage}=await import('@whiskeysockets/baileys');
+ const stream=await downloadContentFromMessage(audio,'audio');let size=0;const chunks=[];
+ for await(const chunk of stream){size+=chunk.length;if(size>5*1024*1024){stream.destroy?.();throw Error('Limite');}chunks.push(chunk);}
+ const form=new FormData();form.append('api_token',token);form.append('file',new Blob(chunks,{type:'audio/ogg'}),'sample.ogg');
+ const response=await fetch('https://api.audd.io/',{method:'POST',body:form,signal:AbortSignal.timeout(30000),redirect:'error'});
+ if(!response.ok)throw Error('Serviço indisponível');
+ const data=await response.json();if(data.status!=='success')throw Error('Reconhecimento recusado');
+ const x=data.result;if(!x)return ctx.reply('Nenhuma música identificada.');
+ await ctx.reply('🎵 '+String(x.title||'Não informado')+'\nArtista: '+String(x.artist||'Não informado')+'\nÁlbum: '+String(x.album||'Não informado')+'\nLançamento: '+String(x.release_date||'Não informado'));
+ }catch{await ctx.reply('Não foi possível identificar a música.');}
+ }
+}];
