@@ -20,7 +20,7 @@ async function ffmpegWebp(buffer) {
 }
 
 export default {
-  name: 'sticker', aliases: ['s','figurinha'], category: 'Figurinhas', description: 'Cria figurinha respondendo a uma foto ou com !s na legenda',
+  name: 'sticker', aliases: ['s','f','sticker2','figurinha'], category: 'Figurinhas', description: 'Cria figurinha respondendo a uma foto ou com !s na legenda',
   async execute(ctx) {
     const message = ctx.msg.message || {};
     const base = message.ephemeralMessage?.message || message;
@@ -44,3 +44,22 @@ export default {
     await ctx.sock.sendMessage(ctx.chat, { sticker: webp }, { quoted: ctx.msg });
   }
 };
+
+
+// Text stickers are generated locally; user text is escaped before SVG rendering.
+export const textStickerCommands=Array.from({length:6},(_,i)=>({
+ name:i?'attp'+(i+1):'attp',category:'Figurinhas',description:'Cria figurinha de texto local',
+ async execute(ctx){
+ const value=ctx.args.join(' ').trim();
+ if(!value||Array.from(value).length>80)return ctx.reply('Informe um texto de até 80 caracteres.');
+ const escape=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[c]);
+ const chars=Array.from(value),lines=[];
+ while(chars.length)lines.push(chars.splice(0,16).join(''));
+ const size=Math.min(58,Math.floor(360/lines.length));
+ const colors=['#ffffff','#ffcf44','#62e5ff','#ff92cb','#a4ff9e','#d4b5ff'];
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">'+lines.map((line,j)=>'<text x="256" y="'+(256+(j-(lines.length-1)/2)*size*1.15)+'" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="'+size+'" fill="'+colors[i]+'" stroke="#111111" stroke-width="3" paint-order="stroke">'+escape(line)+'</text>').join('')+'</svg>';
+ const {default:sharp}=await import('sharp');
+ const sticker=await sharp(Buffer.from(svg)).webp({quality:85}).toBuffer();
+ await ctx.sock.sendMessage(ctx.chat,{sticker});
+ }
+}));
