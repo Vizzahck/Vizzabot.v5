@@ -10,7 +10,7 @@ export async function groupRoles(sock, chat, sender, owner = false, botAdmin = f
   const meta = await sock.groupMetadata(chat);
   const participants = meta.participants || [];
   const isAdmin = p => p?.admin === 'admin' || p?.admin === 'superadmin';
-  const senderInfo = participants.find(p => sameParticipant(p.id, sender));
-  const botInfo = participants.find(p => sameParticipant(p.id, sock.user?.id));
+  const senderInfo = participants.find(p => [p.id,p.phoneNumber,p.lid].some(j=>sameParticipant(j,sender)));
+  const botInfo = participants.find(p => [p.id,p.phoneNumber,p.lid].some(j=>[sock.user?.id,sock.user?.lid,sock.user?.phoneNumber].some(b=>sameParticipant(j,b))));
   return { group: true, admin: owner || botAdmin || isAdmin(senderInfo), botAdmin: isAdmin(botInfo) };
 }
