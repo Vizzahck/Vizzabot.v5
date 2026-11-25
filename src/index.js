@@ -1,4 +1,4 @@
-import makeWASocket, { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys';
 import P from 'pino';
 import { terminalStream, terminalBanner } from './core/terminal.js';
 import { askPairingNumber, formatPairingCode } from './core/pairing.js';
@@ -15,7 +15,8 @@ const store = openDatabase();
 terminalBanner({name:config.name,ownerName:config.ownerName,ownerNumbers:config.owners,prefix:config.prefix,commands:commands.length});
 let reconnectTimer;
 const seenMessageIds = new Set();
-let cachedVersion;
+const messageCache=new Map();
+function rememberMessage(msg){if(!msg.message||!msg.key?.id)return;messageCache.set((msg.key.remoteJid||'')+':'+msg.key.id,msg.message);if(messageCache.size>1000)messageCache.delete(messageCache.keys().next().value);}
 function scheduleReconnect(){
  if(stopping)return;
  clearTimeout(reconnectTimer);
@@ -35,16 +36,14 @@ async function connect() {
     pairingNumber = await askPairingNumber();
     console.log('Número de pareamento: ' + pairingNumber.slice(0, 4) + '*****' + pairingNumber.slice(-2));
   }
-  if(!cachedVersion){try{cachedVersion=(await fetchLatestBaileysVersion()).version;}catch{logger.warn('Versão remota indisponível; usando padrão do Baileys');}}
-  const version=cachedVersion;
-  const sock = makeWASocket({ auth: state, ...(version?{version}:{}), logger, printQRInTerminal: false, markOnlineOnConnect: false, connectTimeoutMs: 60000, defaultQueryTimeoutMs: 90000, keepAliveIntervalMs: 30000 });
+  const sock = makeWASocket({ auth: state, logger, markOnlineOnConnect: false, connectTimeoutMs: 60000, defaultQueryTimeoutMs: 90000, keepAliveIntervalMs: 25000, retryRequestDelayMs: 500, maxMsgRetryCount: 5, getMessage: async key => messageCache.get((key.remoteJid||'')+':'+(key.id||'')) });
   currentSocket = sock;
   const sentIds = trackOutgoingMessages(sock);
   let inboundCount = 0;
   let decryptedCount = 0;
   let pairingRequested = false;
   let pairingCodeShown = false;
-  sock.ev.on('creds.update', () => saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')));
+  sock.ev.on('creds.update', () => { if(currentSocket===sock&&!stopping) saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')); });
   sock.ev.on('messages.upsert', ({ messages, type }) => {
     if (currentSocket !== sock || stopping) return;
     inboundCount += messages.length;
@@ -53,6 +52,7 @@ async function connect() {
     for (const msg of messages) {
       if (!msg.message) continue;
       decryptedCount++;
+      rememberMessage(msg);
       if (type === 'append' && !msg.key?.fromMe) continue;
       const identity = [msg.key?.remoteJid, msg.key?.participant, msg.key?.id].join(':');
       if (msg.key?.id && seenMessageIds.has(identity)) continue;
