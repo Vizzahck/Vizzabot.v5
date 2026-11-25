@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises';
 export const MENU_IMAGE = 'https://telegra.ph/file/cc8a2fd436377132c9b96.jpg';
 export const CATEGORY_ICONS={Geral:'🌐',Administração:'🛡️',Figurinhas:'🎨',Economia:'💎',Proprietário:'👑',Brincadeiras:'🎲',Menus:'📚',Ferramentas:'🧰',Jogos:'🎮',Downloads:'📥','Pesquisa e Downloads':'🔎',Logos:'🖼️',Premium:'⭐'};
 export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
- const cmds=ctx.registry.list().filter(c=>(!c.ownerOnly||ctx.isOwner)&&(category?c.category===category:['Geral','Menus'].includes(c.category)));
+ const sharedPremium=new Set(['ddd','clima','qrcode','getquoted','extrairtexto','ping','gitclone']);
+ const cmds=ctx.registry.list().filter(c=>(!c.ownerOnly||ctx.isOwner)&&(category?(c.category===category||(category==='Premium'&&sharedPremium.has(c.name))):['Geral','Menus'].includes(c.category)));
  const showAliases=category==='Pesquisa e Downloads'||category==='Proprietário';
  const count=cmds.reduce((n,c)=>n+1+(showAliases?(c.aliases||[]).length:0),0);
  const groups=new Map();
