@@ -56,7 +56,15 @@ const searchSafe=searchConflicts?allCommands.filter(c=>c!==mediaCommands.find(m=
 const doc=mediaCommands.find(m=>m.name==='ytdoc');
 const baseCommands=searchSafe.filter(c=>c!==doc||!searchSafe.some(other=>other!==doc&&[other.name,...(other.aliases||[])].includes('ytdoc')));
 const catalogSafe=[...musicCatalogCommands,...repositoryCommands,...instagramImageCommands,...finalDownloadCommands].filter(c=>!baseCommands.some(other=>[other.name,...(other.aliases||[])].includes(c.name)));
-const registeredCommands=[...baseCommands,...catalogSafe];
+const registeredCommands=[];
+const claimed=new Set();
+for(const c of [...baseCommands,...catalogSafe]){
+ const keys=[c.name,...(c.aliases||[])];
+ if(claimed.has(c.name)){console.warn('[registry] Comando duplicado ignorado: '+c.name);continue;}
+ const aliases=[...new Set(keys.slice(1))].filter(a=>a!==c.name&&!claimed.has(a));
+ claimed.add(c.name);for(const a of aliases)claimed.add(a);
+ registeredCommands.push({...c,aliases});
+}
 const legacyAliases = {
  ausente:['off','afk'], ativo:['on','voltei'], setmenufoto:['fotomenu'], setbemvindo:['legendabv'],
  play:['play2','play3','play_audio','tiktok_audio','twister-audio','face-audio'], video:['play_video','tiktok_video','tiktok','instagram','insta','facebook','twitter','twister-video','ig-video','ig-vid','face-video1','face-video2','insta-video'],
