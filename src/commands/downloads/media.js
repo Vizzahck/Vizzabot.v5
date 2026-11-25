@@ -68,3 +68,13 @@ mediaCommands.push({name:'buscarletra',aliases:[],category:'Pesquisa e Downloads
  const query=encodeURIComponent(q+' letra');
  await ctx.reply('🎵 Busca de letra: '+q+'\nhttps://www.google.com/search?q='+query+'%20site%3Aletras.mus.br\nhttps://www.google.com/search?q='+query+'%20site%3Agenius.com');
 }});
+mediaCommands.push({name:'ytsearch',aliases:[],category:'Pesquisa e Downloads',description:'Pesquisa cinco vídeos no YouTube sem baixar',async execute(ctx){
+ const q=ctx.args.join(' ').trim();
+ if(q.length<2||q.length>200)return ctx.reply('Uso: '+ctx.config.prefix+'ytsearch nome');
+ try{
+ const raw=await run('yt-dlp',['--flat-playlist','--dump-single-json','--no-warnings','--','ytsearch5:'+q],{timeoutMs:30000});
+ const entries=JSON.parse(raw).entries||[];
+ const results=entries.filter(e=>e&&/^[A-Za-z0-9_-]{11}$/.test(e.id||'')).slice(0,5);
+ await ctx.reply(results.length?results.map((e,i)=>(i+1)+'. '+String(e.title||'Sem título').slice(0,150)+'\nCanal: '+String(e.channel||e.uploader||'Não informado').slice(0,100)+'\nhttps://www.youtube.com/watch?v='+e.id).join('\n\n'):'Nenhum resultado.');
+ }catch{await ctx.reply('Pesquisa indisponível. Verifique o yt-dlp e a conexão.');}
+}});
