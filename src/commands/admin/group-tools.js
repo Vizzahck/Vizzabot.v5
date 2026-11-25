@@ -110,3 +110,30 @@ groupTools.push(...['grupo','idgp','admins','enquete','msgtemporaria'].map(name=
  await ctx.reply('Configuração atualizada.');
  }
 })));
+
+groupTools.push(...['mute','desmute','mutados'].map(name=>({
+ name,category:'Administração',description:'Gerencia silenciamento individual neste grupo',
+ async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ const db=ctx.store.db;
+ db.exec('CREATE TABLE IF NOT EXISTS group_mutes (jid TEXT NOT NULL, member TEXT NOT NULL, expires INTEGER NOT NULL, PRIMARY KEY(jid,member))');
+ db.prepare('DELETE FROM group_mutes WHERE jid=? AND expires<=?').run(ctx.chat,Date.now());
+ if(name==='mutados'){
+ const rows=db.prepare('SELECT member,expires FROM group_mutes WHERE jid=? ORDER BY expires LIMIT 50').all(ctx.chat);
+ return ctx.reply(rows.length?rows.map(r=>r.member.split('@')[0]+' — '+Math.ceil((r.expires-Date.now())/60000)+' min').join('\n'):'Nenhum membro silenciado.');
+ }
+ const target=ctx.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+ if(!target)return ctx.reply('Marque um membro.');
+ if(name==='desmute'){db.prepare('DELETE FROM group_mutes WHERE jid=? AND member=?').run(ctx.chat,target);return ctx.reply('Silenciamento removido.');}
+ if(!roles.botAdmin)return ctx.reply('O bot precisa ser administrador.');
+ const meta=await ctx.sock.groupMetadata(ctx.chat);
+ const member=meta.participants.find(p=>p.id===target);
+ if(!member||member.admin||target===ctx.sender||target===ctx.sock.user?.id)return ctx.reply('Selecione um participante comum.');
+ const minutes=Number(ctx.args.find(a=>/^\d+$/.test(a))||10);
+ if(!Number.isInteger(minutes)||minutes<1||minutes>1440)return ctx.reply('Informe de 1 a 1440 minutos.');
+ db.prepare('INSERT INTO group_mutes(jid,member,expires) VALUES (?,?,?) ON CONFLICT(jid,member) DO UPDATE SET expires=excluded.expires').run(ctx.chat,target,Date.now()+minutes*60000);
+ await ctx.reply('Membro silenciado por '+minutes+' minutos.');
+ }
+})));
