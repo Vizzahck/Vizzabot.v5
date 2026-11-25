@@ -17,6 +17,13 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   if (await moderateMessage(sock, msg, store, logger, config)) { if (config.activityMonitor) activity(logger, 'moderated', { chatType: chatKind(chat) }); return; }
   const parsed = parseCommand(extractText(msg.message), config.prefix);
   if (!parsed) {
+    if (!msg.key.fromMe && !group) {
+      const settings=await ownerState();
+      if(settings.away && !settings.privateNotice && settings.enabled!==false && settings.receive!==false){
+        if(limiter.allow(chat))await sock.sendMessage(chat,{text:settings.awayText||'O proprietário está ausente.'},{quoted:msg});
+        return;
+      }
+    }
     if (config.simiEnabled && !msg.key.fromMe && !group) {
       const answer = simiReply(extractText(msg.message), config.name);
       if (answer) await sock.sendMessage(chat, { text: answer }, { quoted: msg });
