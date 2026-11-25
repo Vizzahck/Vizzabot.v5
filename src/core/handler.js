@@ -74,6 +74,13 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
     if(!owner && (settings.enabled===false || settings.receive===false || settings.blockedCommands?.includes(command.name) || settings.blockedUsers?.includes(sender))) return;
     if(!owner && group && (settings.bannedGroups?.includes(chat)||settings.rentals?.[chat]<=Date.now()))return reply('⛔ Acesso do grupo suspenso. Consulte o proprietário.');
     if(!owner && !group && settings.privateNotice) return reply(settings.privateText || 'Atendimento privado indisponível.');
+    if(group&&!owner){
+      store.db.exec('CREATE TABLE IF NOT EXISTS group_blocked_commands (jid TEXT NOT NULL,command TEXT NOT NULL,PRIMARY KEY(jid,command))');
+      if(store.db.prepare('SELECT 1 FROM group_blocked_commands WHERE jid=? AND command=?').get(chat,command.name)){
+        const roles=await groupRoles(sock,chat,sender,owner,admin);
+        if(!roles.admin)return reply('Comando desativado neste grupo.');
+      }
+    }
     if(command.category==='Pesquisa e Downloads') {
       const progress={play:'🎵 Procurando áudio...',video:'🎬 Procurando vídeo...',mp4:'🎬 Procurando vídeo...',ytdoc:'🎵 Preparando documento de áudio...',tomp3:'🎧 Extraindo áudio...',gitclone:'📦 Buscando repositório...',album:'💿 Buscando informações do álbum...',videopralink:'🔗 Preparando vídeo...',topmusicas:'🎵 Consultando catálogo musical...'};
       await reply(progress[command.name]||'🔎 Buscando informações e processando seu pedido...').catch(()=>{});
