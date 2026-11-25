@@ -28,7 +28,7 @@ async function connect() {
     console.log('Número de pareamento: ' + pairingNumber.slice(0, 4) + '*****' + pairingNumber.slice(-2));
   }
   const { version } = await fetchLatestBaileysVersion();
-  const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false });
+  const sock = makeWASocket({ auth: state, version, logger, printQRInTerminal: false, markOnlineOnConnect: false, connectTimeoutMs: 60000, defaultQueryTimeoutMs: 90000, keepAliveIntervalMs: 30000 });
   currentSocket = sock;
   const sentIds = trackOutgoingMessages(sock);
   const seenMessageIds = new Set();
@@ -38,11 +38,13 @@ async function connect() {
   let pairingCodeShown = false;
   sock.ev.on('creds.update', () => saveCreds().catch(err => logger.error({ err }, 'Falha ao salvar sessão')));
   sock.ev.on('messages.upsert', ({ messages, type }) => {
+    if (currentSocket !== sock || stopping) return;
     inboundCount += messages.length;
     if (config.activityMonitor) logger.info({ count: messages.length, type }, 'WhatsApp entregou lote de mensagens ao bot');
     if (type !== 'notify' && type !== 'append') return;
     for (const msg of messages) {
-      if (msg.message) decryptedCount++;
+      if (!msg.message) continue;
+      decryptedCount++;
       if (type === 'append' && !msg.key?.fromMe) continue;
       const identity = [msg.key?.remoteJid, msg.key?.participant, msg.key?.id].join(':');
       if (msg.key?.id && seenMessageIds.has(identity)) continue;
@@ -57,6 +59,7 @@ async function connect() {
     handleGroupParticipants(sock, event, store, logger).catch(err => logger.error({ err }, 'Falha em evento de grupo'));
   });
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+    if (currentSocket !== sock || stopping) return;
     if (!state.creds.registered && qr && !pairingRequested && !stopping && !pairingSessionFailed) {
       pairingRequested = true;
       void (async () => {
@@ -86,9 +89,10 @@ async function connect() {
       if (pairingCodeShown) console.log('WhatsApp vinculado com sucesso.');
       logger.info('Vizzabot V5 conectado');
       logger.info({ allowPrivate: config.allowPrivate, allowGroups: config.allowGroups, activityMonitor: config.activityMonitor }, 'Diagnóstico de recepção ativo; envie !ping de outro número');
-      setTimeout(() => { if (currentSocket !== sock || stopping) return; logger.info({ inboundCount, decryptedCount }, 'Diagnóstico de mensagens desde a conexão (contadores locais)'); }, 30000).unref?.();
+      setTimeout(() => { if (currentSocket !== sock || stopping) return; logger.info({ inboundCount, decryptedCount }, `Diagnóstico: ${inboundCount} recebidas, ${decryptedCount} descriptografadas`); }, 30000).unref?.();
     }
     if (connection === 'close' && !stopping) {
+      currentSocket = undefined;
       const status = lastDisconnect?.error?.output?.statusCode;
       if (status === DisconnectReason.loggedOut || status === DisconnectReason.badSession) {
         pairingSessionFailed = true;
