@@ -58,7 +58,7 @@ const baseCommands=searchSafe.filter(c=>c!==doc||!searchSafe.some(other=>other!=
 const catalogSafe=musicCatalogCommands.filter(c=>!baseCommands.some(other=>[other.name,...(other.aliases||[])].includes(c.name)));
 const registeredCommands=[...baseCommands,...catalogSafe];
 const legacyAliases = {
- play:['play2','play3','play_audio','tiktok_audio'], video:['play_video','tiktok_video','tiktok','instagram','insta','facebook','twitter'],
+ play:['play2','play3','play_audio','tiktok_audio','twister-audio','face-audio'], video:['play_video','tiktok_video','tiktok','instagram','insta','facebook','twitter','twister-video','ig-video','ig-vid','face-video1','face-video2','insta-video'],
  sticker:['st','stk'], extrairtexto:['totext','ler','lerfoto'], linkimg:['gerarlink','imgpralink'],
  perfil:['me','my-info'], saldo:['my'], ranking:['rankcoins'], inventario:['itensrpg'],
  minerar:['extrair-minerio'], tesouro:['buscar-tesouros','caçar-tesouro'],
