@@ -152,3 +152,23 @@ groupTools.push(...['so_adm','antilinkhard','antilink_adv'].map(name=>({
  await ctx.reply(name+' '+(value==='on'?'ativado':'desativado'));
  }
 })));
+
+groupTools.push(...['blockcmdgp','unblockcmdgp','listblockcmdgp'].map(name=>({
+ name,category:'Administração',description:'Gerencia comandos bloqueados neste grupo',
+ async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ const db=ctx.store.db;
+ db.exec('CREATE TABLE IF NOT EXISTS group_blocked_commands (jid TEXT NOT NULL,command TEXT NOT NULL,PRIMARY KEY(jid,command))');
+ if(name==='listblockcmdgp'){
+ const rows=db.prepare('SELECT command FROM group_blocked_commands WHERE jid=? ORDER BY command').all(ctx.chat);
+ return ctx.reply(rows.map(r=>r.command).join('\n')||'Nenhum comando bloqueado.');
+ }
+ const command=ctx.registry.get(ctx.args[0]?.toLowerCase()||'');
+ if(!command||command.category==='Administração'||command.ownerOnly)return ctx.reply('Informe um comando válido que não seja administrativo ou exclusivo do dono.');
+ if(name==='blockcmdgp')db.prepare('INSERT OR IGNORE INTO group_blocked_commands VALUES (?,?)').run(ctx.chat,command.name);
+ else db.prepare('DELETE FROM group_blocked_commands WHERE jid=? AND command=?').run(ctx.chat,command.name);
+ await ctx.reply('Configuração atualizada: '+command.name);
+ }
+})));
