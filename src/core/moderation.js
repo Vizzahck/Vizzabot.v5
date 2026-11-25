@@ -24,13 +24,16 @@ export async function moderateMessage(sock,msg,store,logger,config={}){
  const messageText=extractText(msg.message);
  const link=settings.antilink&&linkPattern.test(messageText);
  const blocked=settings.antipalavra?matchesBlockedWord(messageText,blockedWords(store.db,chat)):null;
- if(!flag&&!link&&!blocked)return false;
+ store.db.exec('CREATE TABLE IF NOT EXISTS group_mutes (jid TEXT NOT NULL, member TEXT NOT NULL, expires INTEGER NOT NULL, PRIMARY KEY(jid,member))');
+ const muted=!!store.db.prepare('SELECT 1 FROM group_mutes WHERE jid=? AND member=? AND expires>?').get(chat,msg.key.participant||'',Date.now());
+ if(!flag&&!link&&!blocked&&!muted)return false;
  const sender=msg.key.participant;
  if(!sender)return false;
  try{
   const roles=await groupRoles(sock,chat,sender,false,isBotAdmin(sender,config.botAdmins,config.owners));
   if(roles.admin||!roles.botAdmin)return false;
   await sock.sendMessage(chat,{delete:msg.key});
+  if(muted)return true;
   const count=store.warn(chat,sender);
   await sock.sendMessage(chat,{text:'⚠️ '+(flag?'Mídia bloqueada ('+flag+').':blocked?'Palavra bloqueada.':'Link removido.')+' Avisos registrados: '+count+'.'});
   return true;
