@@ -28,3 +28,21 @@ export const warningCommands=[
   await ctx.reply('📋 Advertências registradas: *'+count+'*.\nUsuário: @'+target.split('@')[0]);
  }}
 ];
+
+warningCommands.push(...[
+ ['tiraradv','Remove uma advertência do membro marcado'],
+ ['resetadv','Zera advertências do membro marcado'],
+ ['listadv','Lista advertências do grupo']
+].map(([name,description])=>({name,description,category:'Administração',async execute(ctx){
+ if(!await adminCheck(ctx))return;
+ const db=ctx.store.db;
+ if(name==='listadv'){
+ const rows=db.prepare('SELECT user_jid,count FROM warnings WHERE group_jid=? AND count>0 ORDER BY count DESC,user_jid LIMIT 50').all(ctx.chat);
+ return ctx.reply(rows.length?rows.map((r,i)=>(i+1)+'. '+r.user_jid.split('@')[0]+' — '+r.count).join('\n'):'Nenhuma advertência.');
+ }
+ const target=mentioned(ctx);if(!target)return ctx.reply('Marque um membro.');
+ if(name==='resetadv'&&!ctx.args.includes('confirmar'))return ctx.reply('Marque o membro e inclua confirmar.');
+ if(name==='resetadv')db.prepare('DELETE FROM warnings WHERE group_jid=? AND user_jid=?').run(ctx.chat,target);
+ else db.prepare('UPDATE warnings SET count=MAX(0,count-1) WHERE group_jid=? AND user_jid=?').run(ctx.chat,target);
+ await ctx.reply('Advertências restantes: '+ctx.store.warnings(ctx.chat,target));
+}})));
