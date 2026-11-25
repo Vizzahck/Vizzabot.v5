@@ -23,6 +23,15 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   if (await moderateMessage(sock, msg, store, logger, config)) { if (config.activityMonitor) activity(logger, 'moderated', { chatType: chatKind(chat) }); return; }
   const parsed = parseCommand(extractText(msg.message), config.prefix);
   if (!parsed) {
+    if(group&&!msg.key.fromMe){
+      store.db.exec('CREATE TABLE IF NOT EXISTS group_modes (jid TEXT NOT NULL,mode TEXT NOT NULL,enabled INTEGER NOT NULL,PRIMARY KEY(jid,mode))');
+      const question=extractText(msg.message).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+      if(/^(?:qual (?:e )?(?:o |seu |o seu )?prefixo?|prefixo)\s*[?!.]*$/.test(question)&&store.db.prepare("SELECT enabled FROM group_modes WHERE jid=? AND mode='modo-prefix'").get(chat)?.enabled){
+        const settings=await ownerState();
+        if(settings.enabled!==false&&settings.receive!==false&&!settings.bannedGroups?.includes(chat)&&!(settings.rentals?.[chat]<=Date.now())&&!settings.blockedUsers?.includes(msg.key.participant)&&limiter.allow(msg.key.participant||chat))await sock.sendMessage(chat,{text:'Meu prefixo é: '+config.prefix},{quoted:msg});
+        return;
+      }
+    }
     if (!msg.key.fromMe && !group) {
       const settings=await ownerState();
       if(settings.away && !settings.privateNotice && settings.enabled!==false && settings.receive!==false){
