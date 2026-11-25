@@ -1,3 +1,4 @@
+import { premiumSigns } from './premium/signs.js';
 import { stickerPacks } from './stickers/packs.js';
 import { ownerExtras } from './owner/extras.js';
 import { personalization } from './owner/personalization.js';
@@ -49,7 +50,7 @@ import { v4QuickCommands } from './fun/v4-quick.js';
 import { practicalBatch } from './general/practical-batch.js';
 import { v4ExtraCommands } from './general/v4-extra-batch.js';
 import { dailyBatch } from './general/daily-batch.js';
-const allCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames, ...restoredMedia, ...textStickerCommands, ...stickerPacks, ...ownerRestored, ...personalization, ...ownerExtras];
+const allCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames, ...restoredMedia, ...textStickerCommands, ...stickerPacks, ...ownerRestored, ...personalization, ...ownerExtras, ...premiumSigns];
 
 // Keep existing registrations if a restored search name is already in use.
 const searchConflicts=allCommands.some(c=>c!==mediaCommands.find(m=>m.name==='ytsearch')&&[c.name,...(c.aliases||[])].includes('ytsearch'));
