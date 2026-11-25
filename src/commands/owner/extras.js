@@ -52,5 +52,31 @@ export const ownerExtras=[
  {...cmd('lista_alugueis','Lista prazos dos grupos',async c=>{
  const s=await ownerState();const rows=Object.entries(s.rentals||{}).map(([id,end])=>id+' — '+new Date(end).toISOString().slice(0,10)+(end<=Date.now()?' (vencido)':' (ativo)'));
  await c.reply(rows.slice(0,50).join('\n')||'Nenhum aluguel registrado.');
- }),aliases:['lista_aluguel','rm_aluguel'].filter(a=>a!=='rm_aluguel')}
+ }),aliases:['lista_aluguel','rm_aluguel'].filter(a=>a!=='rm_aluguel')},
+ cmd('bangp','Desativa comandos públicos no grupo atual',async c=>{
+ if(!c.chat.endsWith('@g.us'))return c.reply('Somente em grupos.');
+ await change(s=>{s.bannedGroups=[...new Set([...(s.bannedGroups||[]),c.chat])];});await c.reply('Comandos públicos desativados neste grupo.');
+ }),
+ cmd('unbangp','Reativa comandos públicos no grupo atual',async c=>{
+ await change(s=>{s.bannedGroups=(s.bannedGroups||[]).filter(id=>id!==c.chat);});await c.reply('Grupo liberado.');
+ }),
+ cmd('legendabv2','Define segunda legenda de boas-vindas',async c=>{
+ const t=c.args.join(' ').trim();if(!t||t.length>500)return c.reply('Informe até 500 caracteres ou reset.');
+ await change(s=>{if(t==='reset')delete s.welcomeText2;else s.welcomeText2=t;});await c.reply('Legenda salva.');
+ }),
+ cmd('bemvindo2','Alterna segunda legenda global',async c=>{
+ if(!['1','0'].includes(c.args[0]))return c.reply('Use 1 ou 0.');
+ await change(s=>{s.welcomeSecond=c.args[0]==='1';});await c.reply('Configuração salva.');
+ }),
+ cmd('lista_respostasprogamadas','Lista respostas locais programadas',async c=>{
+ const s=await ownerState();await c.reply(Object.entries(s.customReplies||{}).map(([k,v])=>k+' — '+v).join('\n').slice(0,3500)||'Nenhuma resposta.');
+ }),
+ {...cmd('add_infocmd','Registra resposta textual local',async c=>{
+ const [key,...parts]=c.args;const value=parts.join(' ').trim();
+ if(!/^[a-z0-9_-]{1,30}$/.test(key||'')||!value||value.length>500||c.registry.get(key))return c.reply('Informe nome livre e texto de até 500 caracteres.');
+ await change(s=>{s.customReplies??={};if(Object.keys(s.customReplies).length>=100&&!Object.hasOwn(s.customReplies,key))throw Error('Limite');Object.defineProperty(s.customReplies,key,{value,enumerable:true,writable:true,configurable:true});});await c.reply('Resposta salva.');
+ }),aliases:['infocmd_add']},
+ {...cmd('del_infocmd','Remove resposta textual local',async c=>{
+ await change(s=>{if(s.customReplies)delete s.customReplies[c.args[0]];});await c.reply('Resposta removida.');
+ }),aliases:['infocmd_del']}
 ];
