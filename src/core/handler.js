@@ -54,6 +54,10 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
     const settings=await ownerState();
     if(!owner && (settings.enabled===false || settings.receive===false || settings.blockedCommands?.includes(command.name) || settings.blockedUsers?.includes(sender))) return;
     if(!owner && !group && settings.privateNotice) return reply(settings.privateText || 'Atendimento privado indisponível.');
+    if(command.category==='Pesquisa e Downloads') {
+      const progress={play:'🎵 Procurando áudio...',video:'🎬 Procurando vídeo...',mp4:'🎬 Procurando vídeo...',ytdoc:'🎵 Preparando documento de áudio...',tomp3:'🎧 Extraindo áudio...',gitclone:'📦 Buscando repositório...',album:'💿 Buscando informações do álbum...',videopralink:'🔗 Preparando vídeo...',topmusicas:'🎵 Consultando catálogo musical...'};
+      await reply(progress[command.name]||'🔎 Buscando informações e processando seu pedido...').catch(()=>{});
+    }
     await command.execute({ sock, msg, chat, sender, args: parsed.args, reply, isOwner: owner, isBotAdmin: admin, config, registry, store, logger });
     if (config.activityMonitor) activity(logger, 'command-completed', { command: command.name });
   } catch (error) {
