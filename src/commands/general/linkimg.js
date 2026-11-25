@@ -2,7 +2,7 @@ import { Blob } from 'node:buffer';
 import { downloadImage } from '../../core/media.js';
 const MAX_BYTES = 8 * 1024 * 1024;
 export default {
-  name: 'linkimg', aliases: ['imglink', 'urlimg'], category: 'Ferramentas',
+  name: 'linkimg', aliases: ['imglink', 'urlimg'], category: 'Pesquisa e Downloads',
   description: 'Hospeda uma imagem e retorna link público (requer ativação local)',
   async execute(ctx) {
     if (!ctx.config.imageLinksEnabled) return ctx.reply('🔒 Hospedagem de imagens desativada. Ative features.imageLinks=1 em config.local.json e reinicie.');
