@@ -82,3 +82,31 @@ groupTools.push(...[
  else db.prepare('INSERT INTO group_greetings(jid,kind,body) VALUES (?,?,?) ON CONFLICT(jid,kind) DO UPDATE SET body=excluded.body').run(ctx.chat,key,value);
  await ctx.reply('Mensagem do grupo atualizada.');
 }})));
+
+groupTools.push(...['grupo','idgp','admins','enquete','msgtemporaria'].map(name=>({
+ name,category:'Administração',description:({grupo:'Abre ou fecha grupo',idgp:'Mostra ID do grupo',admins:'Menciona administradores',enquete:'Cria enquete nativa',msgtemporaria:'Configura mensagens temporárias'})[name],
+ async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ if(name==='idgp')return ctx.reply(ctx.chat);
+ if(name==='admins'){
+ const ids=(await ctx.sock.groupMetadata(ctx.chat)).participants.filter(p=>p.admin).map(p=>p.id);
+ return ctx.sock.sendMessage(ctx.chat,{text:'Administradores:\n'+ids.map(j=>'@'+j.split('@')[0]).join('\n'),mentions:ids});
+ }
+ if(name==='enquete'){
+ const [title,...values]=ctx.args.join(' ').split('|').map(s=>s.trim());
+ if(!title||title.length>200||values.length<2||values.length>12||values.some(v=>!v||v.length>100)||new Set(values).size!==values.length)return ctx.reply('Uso: enquete Pergunta | Opção 1 | Opção 2');
+ return ctx.sock.sendMessage(ctx.chat,{poll:{name:title,values,selectableCount:1}});
+ }
+ if(!roles.botAdmin)return ctx.reply('O bot precisa ser administrador.');
+ if(name==='grupo'){
+ if(!['a','f'].includes(ctx.args[0]))return ctx.reply('Uso: grupo a (abrir) ou grupo f (fechar)');
+ await ctx.sock.groupSettingUpdate(ctx.chat,ctx.args[0]==='a'?'not_announcement':'announcement');
+ }else{
+ const days=ctx.args[0];if(!['0','1','7','90'].includes(days)||ctx.args[1]!=='confirmar')return ctx.reply('Uso: msgtemporaria 0|1|7|90 confirmar (dias). Mensagens futuras podem desaparecer.');
+ await ctx.sock.groupToggleEphemeral(ctx.chat,Number(days)*86400);
+ }
+ await ctx.reply('Configuração atualizada.');
+ }
+})));
