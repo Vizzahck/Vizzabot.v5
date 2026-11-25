@@ -1,3 +1,4 @@
+import { downloadImage } from '../../core/media.js';
 import { ownerState, change } from './restored.js';
 const cmd=(name,description,execute)=>({name,description,execute,ownerOnly:true,category:'Proprietário'});
 export const ownerExtras=[
@@ -133,3 +134,19 @@ export const ownerExtras=[
  await c.reply('Nível atualizado: '+(1+Math.floor(c.store.user(id).xp/100)));
  })
 ];
+
+ownerExtras.push(
+ cmd('imgprogramada','Cria resposta de imagem para comando personalizado',async c=>{
+ const key=c.args[0];if(!/^[a-z0-9_-]{1,30}$/.test(key||'')||c.registry.get(key))return c.reply('Responda a uma imagem e informe um nome de comando livre.');
+ const img=await downloadImage(c.sock,c.msg,c.logger);if(!img)return c.reply('Responda a uma imagem.');
+ const {default:sharp}=await import('sharp');
+ const data=await sharp(img.buffer,{limitInputPixels:20000000}).rotate().resize({width:800,withoutEnlargement:true}).jpeg({quality:75}).toBuffer();
+ if(data.length>500000)return c.reply('Imagem muito grande.');
+ await change(s=>{s.customImages??={};if(Object.keys(s.customImages).length>=10&&!Object.hasOwn(s.customImages,key))throw Error('Limite de imagens');Object.defineProperty(s.customImages,key,{value:data.toString('base64'),enumerable:true,writable:true,configurable:true});});
+ await c.reply('Imagem programada para '+c.config.prefix+key);
+ }),
+ cmd('del_imgprogramada','Remove resposta personalizada de imagem',async c=>{
+ const key=c.args[0];if(!/^[a-z0-9_-]{1,30}$/.test(key||''))return c.reply('Informe o nome do comando.');
+ await change(s=>{if(s.customImages&&Object.hasOwn(s.customImages,key))delete s.customImages[key];});await c.reply('Imagem removida.');
+ })
+);
