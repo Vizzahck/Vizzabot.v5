@@ -138,14 +138,14 @@ groupTools.push(...['mute','desmute','mutados'].map(name=>({
  }
 })));
 
-groupTools.push(...['so_adm','antilinkhard','antilink_adv'].map(name=>({
+groupTools.push(...['so_adm','antilinkhard','antilink_adv','modo-prefix'].map(name=>({
  name,category:'Administração',description:'Configura '+name+' neste grupo',
  async execute(ctx){
  if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
  const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
  if(!roles.admin)return ctx.reply('Somente administradores.');
- const value=ctx.args[0];if(!['on','off'].includes(value))return ctx.reply('Uso: '+name+' on/off');
- if(name!=='so_adm'&&value==='on'&&!roles.botAdmin)return ctx.reply('O bot precisa ser administrador.');
+ const value=({'1':'on','0':'off'})[ctx.args[0]]||ctx.args[0];if(!['on','off'].includes(value))return ctx.reply('Uso: '+name+' on/off');
+ if(!['so_adm','modo-prefix'].includes(name)&&value==='on'&&!roles.botAdmin)return ctx.reply('O bot precisa ser administrador.');
  const db=ctx.store.db;
  db.exec('CREATE TABLE IF NOT EXISTS group_modes (jid TEXT NOT NULL,mode TEXT NOT NULL,enabled INTEGER NOT NULL,PRIMARY KEY(jid,mode))');
  db.prepare('INSERT INTO group_modes VALUES (?,?,?) ON CONFLICT(jid,mode) DO UPDATE SET enabled=excluded.enabled').run(ctx.chat,name,Number(value==='on'));
