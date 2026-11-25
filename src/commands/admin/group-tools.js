@@ -55,3 +55,30 @@ groupTools.push(...extraDefs.map(([name,description,action])=>({
  await ctx.reply(['Configurações do grupo','Mensagens: '+(meta.announce?'Administradores':'Todos'),'Edição: '+(meta.restrict?'Administradores':'Todos'),...['welcome','antilink','antisticker','antiaudio','antivideo','antiimagem','antipalavra'].map(k=>k+': '+(s[k]?'Ativo':'Inativo'))].join('\n'));
  }
 })));
+
+groupTools.push(...[
+ ['fotogp','Altera foto do grupo'],
+ ['legendabvgrupo','Define boas-vindas específicas do grupo'],
+ ['legendasaidagrupo','Define despedida específica do grupo']
+].map(([name,description])=>({name,description,category:'Administração',async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ if(name==='fotogp'){
+ if(!roles.botAdmin)return ctx.reply('O bot precisa ser administrador.');
+ const {downloadImage}=await import('../../core/media.js');
+ const img=await downloadImage(ctx.sock,ctx.msg,ctx.logger);
+ if(!img)return ctx.reply('Responda a uma imagem.');
+ const {default:sharp}=await import('sharp');
+ const buffer=await sharp(img.buffer,{limitInputPixels:20000000}).rotate().resize(640,640,{fit:'cover'}).jpeg().toBuffer();
+ await ctx.sock.updateProfilePicture(ctx.chat,buffer);return ctx.reply('Foto do grupo atualizada.');
+ }
+ const value=ctx.args.join(' ').trim();
+ if(!value||value.length>1000)return ctx.reply('Informe o texto (até 1000 caracteres) ou reset.');
+ const key=name==='legendabvgrupo'?'welcome':'farewell';
+ const db=ctx.store.db;
+ db.exec('CREATE TABLE IF NOT EXISTS group_greetings (jid TEXT NOT NULL,kind TEXT NOT NULL,body TEXT NOT NULL,PRIMARY KEY(jid,kind))');
+ if(value==='reset')db.prepare('DELETE FROM group_greetings WHERE jid=? AND kind=?').run(ctx.chat,key);
+ else db.prepare('INSERT INTO group_greetings(jid,kind,body) VALUES (?,?,?) ON CONFLICT(jid,kind) DO UPDATE SET body=excluded.body').run(ctx.chat,key,value);
+ await ctx.reply('Mensagem do grupo atualizada.');
+}})));
