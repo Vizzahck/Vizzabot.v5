@@ -93,5 +93,24 @@ export const ownerExtras=[
  cmd('sairgp','Sai do grupo atual com confirmação',async c=>{
  if(!c.chat.endsWith('@g.us')||c.args[0]!=='confirmar')return c.reply('Use sairgp confirmar dentro do grupo.');
  await c.reply('Saindo do grupo.');await c.sock.groupLeave(c.chat);
- })
+ }),
+ cmd('loading-menu','Alterna aviso de carregamento do menu',async c=>{
+ const v=c.args[0];if(!['on','off','1','0'].includes(v))return c.reply('Use on ou off.');
+ await change(s=>{s.menuLoading=['on','1'].includes(v);});await c.reply('Configuração salva.');
+ }),
+ cmd('desc-bot','Atualiza descrição do perfil do bot',async c=>{
+ const t=c.args.join(' ').trim();if(!t||t.length>139)return c.reply('Informe até 139 caracteres.');
+ await c.sock.updateProfileStatus(t);await c.reply('Descrição atualizada.');
+ }),
+ cmd('figuid','Consulta metadados de figurinha respondida',async c=>{
+ const s=c.msg.message?.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage;
+ if(!s)return c.reply('Responda a uma figurinha.');
+ await c.reply('Formato: '+(s.mimetype||'image/webp')+'\nDimensões: '+(s.width||'?')+' x '+(s.height||'?')+'\nAnimada: '+(s.isAnimated?'Sim':'Não')+'\nID: '+(s.fileSha256?Buffer.from(s.fileSha256).toString('hex'):'Indisponível'));
+ }),
+ {...cmd('apagar','Apaga mensagem própria do bot respondida',async c=>{
+ const q=c.msg.message?.extendedTextMessage?.contextInfo;
+ const bot=c.sock.user?.id?.replace(/:\d+(?=@)/,'');
+ if(!q?.stanzaId||!bot||q.participant?.replace(/:\d+(?=@)/,'')!==bot)return c.reply('Responda a uma mensagem do próprio bot.');
+ await c.sock.sendMessage(c.chat,{delete:{remoteJid:c.chat,id:q.stanzaId,fromMe:true,participant:q.participant}});
+ }),aliases:['del']}
 ];
