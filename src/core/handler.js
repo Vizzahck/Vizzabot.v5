@@ -95,6 +95,10 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
         if(!roles.admin)return reply('Comando desativado neste grupo.');
       }
     }
+    if(group && command.category==='Economia' && command.name!=='modo_rpg'){
+      const rpgMode=store.db.prepare("SELECT enabled FROM group_modes WHERE jid=? AND mode='rpg'").get(chat);
+      if(rpgMode?.enabled===0)return reply('RPG desativado neste grupo. Um administrador pode ativar com '+config.prefix+'modo_rpg 1.');
+    }
     if(command.category==='Pesquisa e Downloads') {
       const progress={play:'🎵 Procurando áudio...',video:'🎬 Procurando vídeo...',mp4:'🎬 Procurando vídeo...',ytdoc:'🎵 Preparando documento de áudio...',tomp3:'🎧 Extraindo áudio...',gitclone:'📦 Buscando repositório...',album:'💿 Buscando informações do álbum...',videopralink:'🔗 Preparando vídeo...',topmusicas:'🎵 Consultando catálogo musical...'};
       await reply(progress[command.name]||'🔎 Buscando informações e processando seu pedido...').catch(()=>{});
