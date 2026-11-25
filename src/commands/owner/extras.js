@@ -37,5 +37,20 @@ export const ownerExtras=[
  }),
  cmd('ativo','Desativa aviso de ausência',async c=>{
  await change(s=>{s.away=false;delete s.awayText;});await c.reply('Aviso de ausência desativado.');
- })
+ }),
+ cmd('alugar_gp','Registra prazo de acesso do grupo em dias',async c=>{
+ if(!c.chat.endsWith('@g.us'))return c.reply('Somente em grupos.');
+ const days=Number(c.args[0]);if(!Number.isInteger(days)||days<1||days>365)return c.reply('Informe de 1 a 365 dias.');
+ const expiry=Date.now()+days*86400000;
+ await change(s=>{s.rentals??={};s.rentals[c.chat]=expiry;});
+ await c.reply('Prazo registrado até '+new Date(expiry).toISOString().slice(0,10)+'.');
+ }),
+ cmd('remover_aluguel','Remove prazo registrado',async c=>{
+ const id=c.args[0]||c.chat;if(!/^[\d-]+@g\.us$/.test(id))return c.reply('Informe ID de grupo.');
+ await change(s=>{if(s.rentals)delete s.rentals[id];});await c.reply('Registro removido.');
+ }),
+ {...cmd('lista_alugueis','Lista prazos dos grupos',async c=>{
+ const s=await ownerState();const rows=Object.entries(s.rentals||{}).map(([id,end])=>id+' — '+new Date(end).toISOString().slice(0,10)+(end<=Date.now()?' (vencido)':' (ativo)'));
+ await c.reply(rows.slice(0,50).join('\n')||'Nenhum aluguel registrado.');
+ }),aliases:['lista_aluguel','rm_aluguel'].filter(a=>a!=='rm_aluguel')}
 ];
