@@ -31,7 +31,9 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
     return;
   }
   const command = registry.get(parsed.name);
-  if (!command) { if (config.activityMonitor) activity(logger, 'unknown-command', { command: parsed.name, chatType: chatKind(chat) }); return; }
+  if (!command) {
+    const settings=await ownerState();
+    if(settings.enabled!==false&&settings.receive!==false&&!settings.bannedGroups?.includes(chat)&&!(settings.rentals?.[chat]<=Date.now())&&!settings.blockedUsers?.includes(msg.key.participant||chat)&&Object.hasOwn(settings.customReplies||{},parsed.name)&&limiter.allow(msg.key.participant||chat))return sock.sendMessage(chat,{text:settings.customReplies[parsed.name]}); if (config.activityMonitor) activity(logger, 'unknown-command', { command: parsed.name, chatType: chatKind(chat) }); return; }
   // WhatsApp sets remoteJid to the chat for self-sent messages. Use the
   // authenticated account ID to determine permissions, not the chat target.
   const sender = msg.key.fromMe ? sock.user?.id : (group ? msg.key.participant : chat);
@@ -60,6 +62,7 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   try {
     const settings=await ownerState();
     if(!owner && (settings.enabled===false || settings.receive===false || settings.blockedCommands?.includes(command.name) || settings.blockedUsers?.includes(sender))) return;
+    if(!owner && group && (settings.bannedGroups?.includes(chat)||settings.rentals?.[chat]<=Date.now()))return reply('⛔ Acesso do grupo suspenso. Consulte o proprietário.');
     if(!owner && !group && settings.privateNotice) return reply(settings.privateText || 'Atendimento privado indisponível.');
     if(command.category==='Pesquisa e Downloads') {
       const progress={play:'🎵 Procurando áudio...',video:'🎬 Procurando vídeo...',mp4:'🎬 Procurando vídeo...',ytdoc:'🎵 Preparando documento de áudio...',tomp3:'🎧 Extraindo áudio...',gitclone:'📦 Buscando repositório...',album:'💿 Buscando informações do álbum...',videopralink:'🔗 Preparando vídeo...',topmusicas:'🎵 Consultando catálogo musical...'};
