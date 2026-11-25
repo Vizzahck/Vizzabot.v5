@@ -79,3 +79,29 @@ mediaCommands.push({name:'ytsearch',aliases:[],category:'Pesquisa e Downloads',d
  await ctx.reply(results.length?results.map((e,i)=>(i+1)+'. '+String(e.title||'Sem título').slice(0,150)+'\nCanal: '+String(e.channel||e.uploader||'Não informado').slice(0,100)+'\nhttps://www.youtube.com/watch?v='+e.id).join('\n\n'):'Nenhum resultado.');
  }catch{await ctx.reply('Pesquisa indisponível. Verifique o yt-dlp e a conexão.');}
 }});
+
+export const musicCatalogCommands=['deezer','album','topmusicas'].map(name=>({
+ name,aliases:[],category:'Pesquisa e Downloads',
+ description:name==='album'?'Pesquisa álbuns':name==='topmusicas'?'Consulta músicas populares no Brasil':'Pesquisa músicas no catálogo',
+ async execute(ctx){
+  const q=ctx.args.join(' ').trim();
+  if(name!=='topmusicas'&&(!q||q.length>150))return ctx.reply('Uso: '+ctx.config.prefix+name+' nome');
+  const params=new URLSearchParams({country:'BR',limit:'5',media:'music',explicit:'No'});
+  params.set('entity',name==='album'?'album':'song');
+  params.set('term',name==='topmusicas'?'':q);
+  try{
+   const url=name==='topmusicas'?'https://rss.applemarketingtools.com/api/v2/br/music/most-played/10/songs.json':'https://itunes.apple.com/search?'+params;
+   const res=await fetch(url,{signal:AbortSignal.timeout(10000),redirect:'error'});
+   if(!res.ok)throw Error('Catálogo indisponível');
+   const json=await res.json();
+   const items=(name==='topmusicas'?json.feed?.results:json.results)||[];
+   const rows=items.slice(0,5).map((x,i)=>{
+    const title=String(x.trackName||x.collectionName||x.name||'Sem título').slice(0,120);
+    const artist=String(x.artistName||'Não informado').slice(0,100);
+    const link=name==='deezer'?'https://www.deezer.com/search/'+encodeURIComponent(title+' '+artist):String(x.trackViewUrl||x.collectionViewUrl||x.url||'');
+    return (i+1)+'. '+title+'\nArtista: '+artist+'\n'+(isHttpUrl(link)?link:'');
+   });
+   await ctx.reply(rows.length?rows.join('\n\n'):'Nenhum resultado encontrado.');
+  }catch{await ctx.reply('Catálogo temporariamente indisponível.');}
+ }
+}));
