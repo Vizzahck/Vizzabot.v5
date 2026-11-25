@@ -49,7 +49,7 @@ export const wordFilterCommands=[
   const result=ctx.store.db.prepare('DELETE FROM group_blocked_words WHERE group_jid=? AND word=?').run(ctx.chat,word);
   await ctx.reply(result.changes?'🗑️ Palavra removida.':'Palavra não encontrada.');
  }},
- {name:'listapalavras',aliases:['palavrasbloqueadas'],category:'Administração',description:'Lista palavras bloqueadas no grupo',async execute(ctx){
+ {name:'listapalavras',aliases:['palavrasbloqueadas','listapalavra','listapalavrao','listapalavrão','listpalavra'],category:'Administração',description:'Lista palavras bloqueadas no grupo',async execute(ctx){
   if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
   const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
   if(!roles.admin)return ctx.reply('⛔ Somente administradores.');
@@ -57,3 +57,13 @@ export const wordFilterCommands=[
   await ctx.reply('🛡️ *PALAVRAS BLOQUEADAS*\n'+(words.length?words.map((w,i)=>(i+1)+'. '+w).join('\n'):'Nenhuma palavra cadastrada.'));
  }}
 ];
+
+wordFilterCommands.push({name:'limparpalavras',category:'Administração',description:'Limpa filtro de palavras deste grupo',async execute(ctx){
+ if(!ctx.chat.endsWith('@g.us'))return ctx.reply('Somente em grupos.');
+ const roles=await groupRoles(ctx.sock,ctx.chat,ctx.sender,ctx.isOwner,ctx.isBotAdmin);
+ if(!roles.admin)return ctx.reply('Somente administradores.');
+ if(ctx.args[0]!=='confirmar')return ctx.reply('Use limparpalavras confirmar.');
+ ensureWordTable(ctx.store.db);
+ const r=ctx.store.db.prepare('DELETE FROM group_blocked_words WHERE group_jid=?').run(ctx.chat);
+ await ctx.reply('Palavras removidas: '+r.changes);
+}});
