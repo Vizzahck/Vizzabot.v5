@@ -109,22 +109,22 @@ export const musicCatalogCommands=['deezer','album','topmusicas'].map(name=>({
 export const repositoryCommands=[{
  name:'gitclone',aliases:[],category:'Pesquisa e Downloads',description:'Envia o ZIP de um repositório público do GitHub',
  async execute(ctx){
- const match=ctx.args.join(' ').trim().match(/^https:\/\/github\.com\/([A-Za-z0-9-]+)\/([A-Za-z0-9_.-]+)\/?$/);
+ const match=ctx.args.join(' ').trim().match(/^(?:https:\/\/(?:www\.)?github\.com\/)?([A-Za-z0-9-]+)\/([A-Za-z0-9_.-]+)\/?$/);
  if(!match)return ctx.reply('Uso: '+ctx.config.prefix+'gitclone https://github.com/dono/repositorio');
  const [,owner,raw]=match;const repo=raw.replace(/\.git$/,'');
  if(!repo||repo==='.'||repo==='..')return ctx.reply('Repositório inválido.');
  try{
- const res=await fetch('https://api.github.com/repos/'+owner+'/'+repo,{signal:AbortSignal.timeout(15000),headers:{Accept:'application/vnd.github+json'}});
- if(!res.ok)throw Error('Repositório indisponível');
+ const res=await fetch('https://api.github.com/repos/'+owner+'/'+repo,{signal:AbortSignal.timeout(15000),headers:{Accept:'application/vnd.github+json','User-Agent':'Vizzabot-V5'}});
+ if(!res.ok)throw Error('GitHub HTTP '+res.status);
  const data=await res.json();
  if(data.private||!data.default_branch)throw Error('Repositório não público');
  const url='https://codeload.github.com/'+owner+'/'+repo+'/zip/refs/heads/'+encodeURIComponent(data.default_branch);
  const zip=await fetch(url,{signal:AbortSignal.timeout(60000),redirect:'error'});
- if(!zip.ok||!zip.body)throw Error('ZIP indisponível');
+ if(!zip.ok||!zip.body)throw Error('ZIP HTTP '+zip.status);
  const reader=zip.body.getReader();let size=0;const chunks=[];
  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_BYTES)throw Error('ZIP maior que 45 MB');chunks.push(Buffer.from(value));}}finally{await reader.cancel().catch(()=>{});}
  await ctx.sock.sendMessage(ctx.chat,{document:Buffer.concat(chunks),mimetype:'application/zip',fileName:repo+'.zip'});
- }catch{await ctx.reply('Não consegui obter o ZIP público (limite de 45 MB).');}
+ }catch(e){ctx.logger?.warn?.({message:e.message},'Falha gitclone');await ctx.reply('Não consegui obter o ZIP público: '+(/^(GitHub HTTP|ZIP HTTP|ZIP maior)/.test(e.message)?e.message:'falha de conexão ou envio')+'.');}
  }
 }];
 
