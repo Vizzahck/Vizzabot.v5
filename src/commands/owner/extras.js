@@ -124,5 +124,15 @@ export const ownerExtras=[
  if(c.args.join(' ')!=='moedas confirmar')return c.reply('Atenção: zera o saldo de todos os jogadores. Use reset-rank moedas confirmar.');
  const r=c.store.db.prepare('UPDATE users SET coins=0 WHERE coins>0').run();await c.reply('Saldos zerados: '+r.changes);
  }),
- cmd('listadmin','Lista administradores configurados',async c=>c.reply((c.config.botAdmins||[]).join('\n')||'Nenhum administrador.'))
+ cmd('listadmin','Lista administradores configurados',async c=>c.reply((c.config.botAdmins||[]).join('\n')||'Nenhum administrador.')),
+ cmd('ganharlevel','Concede níveis ao usuário marcado (100 XP por nível)',async c=>{
+ const id=c.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+ const n=Number(c.args.find(a=>/^\d+$/.test(a)));
+ if(!id||!Number.isSafeInteger(n)||n<1||n>1000)return c.reply('Marque um usuário e informe de 1 a 1000 níveis.');
+ c.store.user(id);c.store.db.prepare('UPDATE users SET xp=xp+? WHERE jid=?').run(n*100,id);
+ await c.reply('Nível atualizado: '+(1+Math.floor(c.store.user(id).xp/100)));
+ }),
+ cmd('reviverqr','Orienta recuperação segura da conexão',async c=>{
+ await c.reply('Se a conexão cair, a reconexão é automática. Se a sessão for recusada, pare o bot no Termux e use bash termux/reset-pairing.sh. Nunca compartilhe o código de vinculação.');
+ })
 ];
