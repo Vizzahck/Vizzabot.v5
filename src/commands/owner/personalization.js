@@ -18,3 +18,16 @@ export const personalization=[
  owner('premiumbonus','Define multiplicador diário premium de 1 a 3',async c=>{const n=Number(c.args[0]);if(!Number.isInteger(n)||n<1||n>3)return c.reply('Informe 1, 2 ou 3.');await change(s=>{s.premiumBonus=n;});await c.reply('Bônus atualizado.');}),
  {name:'serpremium',category:'Premium',description:'Consulta seu premium e benefícios',async execute(c){const s=await ownerState();await c.reply(isPremium(s,c.sender)?'⭐ Premium ativo. Recompensa diária: '+(s.premiumBonus||2)+'x.':'Premium inativo. Consulte o proprietário.');}}
 ];
+
+for(const [name,key] of [['fundobemvindo','welcome'],['fundosaiu','farewell']]){
+ const command=owner(name,'Personaliza imagem de '+key,async c=>{
+ if(c.args[0]==='reset'){await change(s=>{delete s[key+'Image'];});return c.reply('Imagem restaurada.');}
+ const img=await downloadImage(c.sock,c.msg,c.logger);if(!img)return c.reply('Responda a uma imagem ou use reset.');
+ const {default:sharp}=await import('sharp');
+ const data=await sharp(img.buffer,{limitInputPixels:20000000}).rotate().resize({width:1000,withoutEnlargement:true}).jpeg({quality:80}).toBuffer();
+ await mkdir('data',{recursive:true});await writeFile('data/'+key+'-custom.jpg',data,{mode:0o600});
+ await change(s=>{s[key+'Image']=true;});await c.reply('Imagem salva.');
+ });
+ if(key==='welcome')command.aliases=['fundobv'];
+ personalization.push(command);
+}
