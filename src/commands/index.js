@@ -31,7 +31,7 @@ import { groupTools } from './admin/group-tools.js';
 import { v4Fun, sorteio } from './fun/v4-fun.js';
 import { economyTools } from './rpg/economy-tools.js';
 import { gameCommands } from './games/two-player.js';
-import { mediaCommands } from './downloads/media.js';
+import { mediaCommands, musicCatalogCommands } from './downloads/media.js';
 import { ownerSettings } from './owner/settings.js';
 import { v4Utilities } from './general/v4-utilities.js';
 import { extraGroupCommands } from './admin/extra-group.js';
@@ -55,6 +55,8 @@ const searchConflicts=allCommands.some(c=>c!==mediaCommands.find(m=>m.name==='yt
 const searchSafe=searchConflicts?allCommands.filter(c=>c!==mediaCommands.find(m=>m.name==='ytsearch')):allCommands;
 const doc=mediaCommands.find(m=>m.name==='ytdoc');
 const baseCommands=searchSafe.filter(c=>c!==doc||!searchSafe.some(other=>other!==doc&&[other.name,...(other.aliases||[])].includes('ytdoc')));
+const catalogSafe=musicCatalogCommands.filter(c=>!baseCommands.some(other=>[other.name,...(other.aliases||[])].includes(c.name)));
+const registeredCommands=[...baseCommands,...catalogSafe];
 const legacyAliases = {
  play:['play2','play3','play_audio','tiktok_audio'], video:['play_video','tiktok_video','tiktok','instagram','insta','facebook','twitter'],
  sticker:['st','stk'], extrairtexto:['totext','ler','lerfoto'], linkimg:['gerarlink','imgpralink'],
@@ -66,8 +68,8 @@ const legacyAliases = {
  repetir:['repertirtexto']
 };
 // Preserve existing commands and aliases; never shadow a registered name.
-const occupied=new Set(baseCommands.flatMap(c=>[c.name,...(c.aliases||[])]));
-export const commands=baseCommands.map(c=>{
+const occupied=new Set(registeredCommands.flatMap(c=>[c.name,...(c.aliases||[])]));
+export const commands=registeredCommands.map(c=>{
  const aliases=[...(c.aliases||[])];
  for(const alias of legacyAliases[c.name]||[]){
   if(!occupied.has(alias)){occupied.add(alias);aliases.push(alias);}
