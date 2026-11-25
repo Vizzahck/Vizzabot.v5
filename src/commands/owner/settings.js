@@ -40,3 +40,14 @@ ownerSettings.push(...Array.from({length:6},(_,i)=>({
  await ctx.reply('Proprietário configurado. Reinicie o bot para aplicar.');
  }
 })));
+
+for(const name of ['addadmin','deladmin']){
+ ownerSettings.push({name,category:'Proprietário',ownerOnly:true,description:'Gerencia administradores do bot',async execute(c){
+ const n=c.args[0];if(!/^\d{10,15}$/.test(n||'')||c.args[1]!=='confirmar')return c.reply('Uso: '+c.config.prefix+name+' DDI_NUMERO confirmar');
+ const data=JSON.parse(await readFile(path,'utf8'));
+ if(!Array.isArray(data.owner?.numbers)||!Array.isArray(data.botAdmins??[]))return c.reply('Configuração local inválida.');
+ const a=new Set(data.botAdmins||[]);if(name==='addadmin')a.add(n);else a.delete(n);
+ data.botAdmins=[...a];await writeFile(path+'.tmp',JSON.stringify(data,null,2)+'\n',{mode:0o600});await rename(path+'.tmp',path);
+ await c.reply('Configuração salva. Reinicie o bot para aplicar.');
+ }});
+}
