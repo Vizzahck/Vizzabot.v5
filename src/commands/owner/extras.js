@@ -78,5 +78,20 @@ export const ownerExtras=[
  }),aliases:['infocmd_add']},
  {...cmd('del_infocmd','Remove resposta textual local',async c=>{
  await change(s=>{if(s.customReplies)delete s.customReplies[c.args[0]];});await c.reply('Resposta removida.');
- }),aliases:['infocmd_del']}
+ }),aliases:['infocmd_del']},
+ cmd('tempo-fgp','Consulta prazo de acesso do grupo',async c=>{
+ if(!c.chat.endsWith('@g.us'))return c.reply('Somente em grupos.');
+ const s=await ownerState();const end=s.rentals?.[c.chat];
+ if(!end)return c.reply('Grupo sem prazo cadastrado.');
+ const remaining=Math.max(0,end-Date.now());
+ await c.reply('Vencimento: '+new Date(end).toISOString().slice(0,10)+'\nRestam '+Math.floor(remaining/86400000)+' dias e '+Math.floor(remaining/3600000)%24+' horas.');
+ }),
+ cmd('antipv','Configura aviso de privado',async c=>{
+ const v=c.args[0];if(!['1','0','on','off'].includes(v))return c.reply('Use on ou off.');
+ await change(s=>{s.privateNotice=['1','on'].includes(v);});await c.reply('Configuração salva.');
+ }),
+ cmd('sairgp','Sai do grupo atual com confirmação',async c=>{
+ if(!c.chat.endsWith('@g.us')||c.args[0]!=='confirmar')return c.reply('Use sairgp confirmar dentro do grupo.');
+ await c.reply('Saindo do grupo.');await c.sock.groupLeave(c.chat);
+ })
 ];
