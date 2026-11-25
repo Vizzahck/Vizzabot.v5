@@ -6,7 +6,9 @@ import { join } from 'node:path';
 const LIMIT=8*1024*1024;
 let busy=false;
 const specs=[
- ['toimg',[],['sticker'],'png',['-frames:v','1']],
+ ['figcinza',[],['sticker','image'],'webp',['-frames:v','1','-vf','hue=s=0','-c:v','libwebp']],
+ ['figespelho',[],['sticker','image'],'webp',['-frames:v','1','-vf','hflip','-c:v','libwebp']],
+ ['toimg',['sticker2img'],['sticker'],'png',['-frames:v','1']],
  ['togif',[],['sticker','video'],'mp4',['-an','-vf','scale=480:-2:force_original_aspect_ratio=decrease','-c:v','libx264','-pix_fmt','yuv420p']],
  ['tomp3',['extrairaudio','videopraaudio'],['video','audio'],'mp3',['-vn','-c:a','libmp3lame']],
  ['grave',['grave2'],['audio'],'mp3',['-af','asetrate=44100*0.85,aresample=44100']],
@@ -16,12 +18,12 @@ const specs=[
  ['videocontrario',['reversevid'],['video'],'mp4',['-vf','scale=480:-2,reverse','-an']],
  ['videolento',['slowvid'],['video'],'mp4',['-vf','setpts=1.5*PTS','-an']],
  ['videorapido',['fastvid'],['video'],'mp4',['-vf','setpts=0.67*PTS','-an']],
- ['figvideo',[],['video'],'webp',['-an','-vf','fps=12,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2','-loop','0','-c:v','libwebp','-q:v','55']]
+ ['figvideo',['stickeranimado','sgif'],['video'],'webp',['-an','-vf','fps=12,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000','-loop','0','-c:v','libwebp_anim','-q:v','55']]
 ];
 function source(ctx,kinds){
  const m=ctx.msg.message?.ephemeralMessage?.message||ctx.msg.message||{};
- const q=m.extendedTextMessage?.contextInfo?.quotedMessage||m.videoMessage?.contextInfo?.quotedMessage||{};
- for(const candidate of [m,q])for(const kind of kinds){
+ const q=Object.values(m).find(v=>v?.contextInfo?.quotedMessage)?.contextInfo?.quotedMessage||{};
+ for(const candidate of [m,q.ephemeralMessage?.message||q])for(const kind of kinds){
   const media=candidate[kind+'Message'];if(media)return {media,kind};
  }
 }
