@@ -36,9 +36,9 @@ export async function inspect(target){
  return info;
 }
 export async function download(target,kind,dir){const template=join(dir,'media.%(ext)s');const args=['--no-playlist','--no-warnings','--max-filesize','45M','--output',template];if(kind==='audio')args.push('-x','--audio-format','mp3','--audio-quality','5');else args.push('-f','bv*[height<=720]+ba/b[height<=720]/b','--merge-output-format','mp4','--recode-video','mp4');args.push(target);await run('yt-dlp',args,{timeoutMs:180000,maxOutput:4*1024*1024});const names=(await readdir(dir)).filter(x=>x.startsWith('media.')&&!x.endsWith('.part'));if(!names.length)throw Error('Arquivo não encontrado após download');const file=join(dir,names[0]);if((await stat(file)).size>MAX_BYTES)throw Error('Arquivo maior que 45 MB');return {buffer:await readFile(file),name:names[0]};}
-export const mediaCommands=['play','video','mp4'].map(kind=>({
+export const mediaCommands=['play','video','mp4','ytdoc'].map(kind=>({
  name:kind,aliases:kind==='play'?['musica','audio','ytmp3']:kind==='video'?['ytmp4','videoyt']:[],category:'Pesquisa e Downloads',
- description:kind==='play'?'Baixa áudio por link ou nome':'Baixa vídeo por link ou nome',
+ description:kind==='ytdoc'?'Envia áudio MP3 como documento':kind==='play'?'Baixa áudio por link ou nome':'Baixa vídeo por link ou nome',
  async execute(ctx){
   const search=ctx.args.join(' ').trim();
   if(!search)return ctx.reply('Uso: '+ctx.config.prefix+kind+' nome ou link');
@@ -55,8 +55,9 @@ export const mediaCommands=['play','video','mp4'].map(kind=>({
     try{await ctx.sock.sendMessage(ctx.chat,{image:{url:info.thumbnail},caption},sendOptions);}catch{await ctx.reply(caption);}
    }else if(kind==='play')await ctx.reply(caption);
    dir=await mkdtemp(join(tmpdir(),'vizzabot-media-'));
-   const file=await download(url,kind==='play'?'audio':'video',dir);
+   const file=await download(url,['play','ytdoc'].includes(kind)?'audio':'video',dir);
    if(kind==='play')await ctx.sock.sendMessage(ctx.chat,{audio:file.buffer,mimetype:'audio/mpeg',fileName:(String(info.title||'audio').replace(/[\\\\/:*?\"<>|]/g,'').slice(0,80)||'audio')+'.mp3'},sendOptions);
+   else if(kind==='ytdoc')await ctx.sock.sendMessage(ctx.chat,{document:file.buffer,mimetype:'audio/mpeg',fileName:'audio.mp3',caption},sendOptions);
    else await ctx.sock.sendMessage(ctx.chat,{video:file.buffer,mimetype:'video/mp4',caption},sendOptions);
   }catch(error){ctx.logger.warn({message:error.message,command:kind},'Falha no download');await ctx.reply('⚠️ Não consegui baixar essa mídia. Confira o link, o suporte da plataforma e se yt-dlp/ffmpeg estão instalados.');}
   finally{if(dir)await rm(dir,{recursive:true,force:true}).catch(()=>{});}
@@ -64,7 +65,7 @@ export const mediaCommands=['play','video','mp4'].map(kind=>({
 }));
 mediaCommands.push({name:'buscarletra',aliases:[],category:'Pesquisa e Downloads',description:'Busca fontes de letras por música e artista',async execute(ctx){
  const q=ctx.args.join(' ').trim();
- if(!q||q.length>200)return ctx.reply('Uso: '+ctx.config.prefix+'letra música artista');
+ if(!q||q.length>200)return ctx.reply('Uso: '+ctx.config.prefix+'buscarletra música artista');
  const query=encodeURIComponent(q+' letra');
  await ctx.reply('🎵 Busca de letra: '+q+'\nhttps://www.google.com/search?q='+query+'%20site%3Aletras.mus.br\nhttps://www.google.com/search?q='+query+'%20site%3Agenius.com');
 }});
