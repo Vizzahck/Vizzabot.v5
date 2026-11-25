@@ -112,5 +112,17 @@ export const ownerExtras=[
  const bot=c.sock.user?.id?.replace(/:\d+(?=@)/,'');
  if(!q?.stanzaId||!bot||q.participant?.replace(/:\d+(?=@)/,'')!==bot)return c.reply('Responda a uma mensagem do próprio bot.');
  await c.sock.sendMessage(c.chat,{delete:{remoteJid:c.chat,id:q.stanzaId,fromMe:true,participant:q.participant}});
- }),aliases:['del']}
+ }),aliases:['del']},
+ cmd('ganharxp','Concede XP ao usuário marcado',async c=>{
+ const id=c.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+ const n=Number(c.args.find(a=>/^\d+$/.test(a)));
+ if(!id||!Number.isSafeInteger(n)||n<1||n>100000)return c.reply('Marque um usuário e informe de 1 a 100000 XP.');
+ c.store.user(id);c.store.db.prepare('UPDATE users SET xp=xp+? WHERE jid=?').run(n,id);
+ await c.reply('XP atualizado: '+c.store.user(id).xp);
+ }),
+ cmd('reset-rank','Zera moedas do ranking global com confirmação',async c=>{
+ if(c.args.join(' ')!=='moedas confirmar')return c.reply('Atenção: zera o saldo de todos os jogadores. Use reset-rank moedas confirmar.');
+ const r=c.store.db.prepare('UPDATE users SET coins=0 WHERE coins>0').run();await c.reply('Saldos zerados: '+r.changes);
+ }),
+ cmd('listadmin','Lista administradores configurados',async c=>c.reply((c.config.botAdmins||[]).join('\n')||'Nenhum administrador.'))
 ];
