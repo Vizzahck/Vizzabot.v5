@@ -1,3 +1,4 @@
+import { groupRoles } from './group.js';
 import { ownerState } from '../commands/owner/restored.js';
 import { extractText, parseCommand } from './parser.js';
 import { isOwner, isBotAdmin } from './permissions.js';
@@ -29,6 +30,14 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
       if (answer) await sock.sendMessage(chat, { text: answer }, { quoted: msg });
     }
     return;
+  }
+  if(group){
+    store.db.exec('CREATE TABLE IF NOT EXISTS group_modes (jid TEXT NOT NULL,mode TEXT NOT NULL,enabled INTEGER NOT NULL,PRIMARY KEY(jid,mode))');
+    if(store.db.prepare("SELECT enabled FROM group_modes WHERE jid=? AND mode='so_adm'").get(chat)?.enabled){
+      const actor=msg.key.fromMe?sock.user?.id:msg.key.participant;
+      const roles=await groupRoles(sock,chat,actor,isOwner(actor,config.owners),isBotAdmin(actor,config.botAdmins,config.owners));
+      if(!roles.admin)return;
+    }
   }
   const command = registry.get(parsed.name);
   if (!command) {
