@@ -33,6 +33,7 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
   const command = registry.get(parsed.name);
   if (!command) {
     const settings=await ownerState();
+    if(settings.enabled!==false&&settings.receive!==false&&(group||!settings.privateNotice)&&!settings.bannedGroups?.includes(chat)&&!(settings.rentals?.[chat]<=Date.now())&&!settings.blockedUsers?.includes(msg.key.participant||chat)&&!settings.blockedCommands?.includes(parsed.name)&&Object.hasOwn(settings.customImages||{},parsed.name)&&limiter.allow(msg.key.participant||chat))return sock.sendMessage(chat,{image:Buffer.from(settings.customImages[parsed.name],'base64')});
     if(settings.enabled!==false&&settings.receive!==false&&!settings.bannedGroups?.includes(chat)&&!(settings.rentals?.[chat]<=Date.now())&&!settings.blockedUsers?.includes(msg.key.participant||chat)&&Object.hasOwn(settings.customReplies||{},parsed.name)&&limiter.allow(msg.key.participant||chat))return sock.sendMessage(chat,{text:settings.customReplies[parsed.name]}); if (config.activityMonitor) activity(logger, 'unknown-command', { command: parsed.name, chatType: chatKind(chat) }); return; }
   // WhatsApp sets remoteJid to the chat for self-sent messages. Use the
   // authenticated account ID to determine permissions, not the chat target.
