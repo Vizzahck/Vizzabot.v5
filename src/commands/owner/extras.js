@@ -30,5 +30,12 @@ export const ownerExtras=[
  cmd('limparblockcmd','Libera todos os comandos públicos bloqueados',async c=>{
  if(c.args[0]!=='confirmar')return c.reply('Use limparblockcmd confirmar.');
  await change(s=>{s.blockedCommands=[];});await c.reply('Bloqueios de comandos removidos.');
+ }),
+ cmd('ausente','Ativa aviso de ausência no privado',async c=>{
+ const reason=c.args.join(' ').trim();if(reason.length>300)return c.reply('Limite de 300 caracteres.');
+ await change(s=>{s.away=true;s.awayText=reason||'O proprietário está ausente no momento.';});await c.reply('Aviso de ausência ativado.');
+ }),
+ cmd('ativo','Desativa aviso de ausência',async c=>{
+ await change(s=>{s.away=false;delete s.awayText;});await c.reply('Aviso de ausência desativado.');
  })
 ];
