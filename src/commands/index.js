@@ -31,7 +31,7 @@ import { groupTools } from './admin/group-tools.js';
 import { v4Fun, sorteio } from './fun/v4-fun.js';
 import { economyTools } from './rpg/economy-tools.js';
 import { gameCommands } from './games/two-player.js';
-import { mediaCommands, musicCatalogCommands, repositoryCommands, instagramImageCommands, finalDownloadCommands, recognitionCommands } from './downloads/media.js';
+import { mediaCommands, musicCatalogCommands, repositoryCommands, instagramImageCommands, finalDownloadCommands } from './downloads/media.js';
 import { ownerSettings } from './owner/settings.js';
 import { v4Utilities } from './general/v4-utilities.js';
 import { extraGroupCommands } from './admin/extra-group.js';
@@ -55,7 +55,7 @@ const searchConflicts=allCommands.some(c=>c!==mediaCommands.find(m=>m.name==='yt
 const searchSafe=searchConflicts?allCommands.filter(c=>c!==mediaCommands.find(m=>m.name==='ytsearch')):allCommands;
 const doc=mediaCommands.find(m=>m.name==='ytdoc');
 const baseCommands=searchSafe.filter(c=>c!==doc||!searchSafe.some(other=>other!==doc&&[other.name,...(other.aliases||[])].includes('ytdoc')));
-const catalogSafe=[...musicCatalogCommands,...repositoryCommands,...instagramImageCommands,...finalDownloadCommands,...recognitionCommands].filter(c=>!baseCommands.some(other=>[other.name,...(other.aliases||[])].includes(c.name)));
+const catalogSafe=[...musicCatalogCommands,...repositoryCommands,...instagramImageCommands,...finalDownloadCommands].filter(c=>!baseCommands.some(other=>[other.name,...(other.aliases||[])].includes(c.name)));
 const registeredCommands=[...baseCommands,...catalogSafe];
 const legacyAliases = {
  play:['play2','play3','play_audio','tiktok_audio','twister-audio','face-audio'], video:['play_video','tiktok_video','tiktok','instagram','insta','facebook','twitter','twister-video','ig-video','ig-vid','face-video1','face-video2','insta-video'],
