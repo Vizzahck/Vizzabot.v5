@@ -45,7 +45,6 @@ export const mediaCommands=['play','video','mp4','ytdoc'].map(kind=>({
   let dir;
   try{
    const target=queryTarget(search);
-   await ctx.reply('🔎 Procurando mídia, aguarde...');
    const info=await inspect(target);
    const url=info.webpage_url&&isHttpUrl(info.webpage_url)?info.webpage_url:target;
    const caption=formatInfo(info)+(kind==='mp4'?'\n📝 *Descrição:* '+String(info.description||'Não informada').slice(0,650):'');
@@ -99,8 +98,14 @@ export const musicCatalogCommands=['deezer','album','topmusicas'].map(name=>({
     const title=String(x.trackName||x.collectionName||x.name||'Sem título').slice(0,120);
     const artist=String(x.artistName||'Não informado').slice(0,100);
     const link=name==='deezer'?'https://www.deezer.com/search/'+encodeURIComponent(title+' '+artist):String(x.trackViewUrl||x.collectionViewUrl||x.url||'');
-    return (i+1)+'. '+title+'\nArtista: '+artist+'\n'+(isHttpUrl(link)?link:'');
+    const date=typeof x.releaseDate==='string'?x.releaseDate.slice(0,10).split('-').reverse().join('/'):'Não informada';
+    const genre=x.primaryGenreName||'Não informado';
+    const details=name==='album'?'\nGênero: '+genre+'\nLançamento: '+date+'\nFaixas: '+(x.trackCount??'Não informado')+'\nDescrição: Álbum de '+artist+(x.primaryGenreName?' no gênero '+genre:'')+'. '+(x.trackCount?'Contém '+x.trackCount+' faixas.':'') : name==='deezer'?'\nÁlbum: '+(x.collectionName||'Não informado')+'\nGênero: '+genre+'\nLançamento: '+date:'';
+    return (i+1)+'. *'+title+'*\nArtista: '+artist+details+'\n'+(isHttpUrl(link)?link:'');
    });
+   if(name==='album'&&items[0]?.artworkUrl100&&isHttpUrl(items[0].artworkUrl100)){
+    try{await ctx.sock.sendMessage(ctx.chat,{image:{url:items[0].artworkUrl100},caption:rows.join('\n\n')});return;}catch{}
+   }
    await ctx.reply(rows.length?rows.join('\n\n'):'Nenhum resultado encontrado.');
   }catch{await ctx.reply('Catálogo temporariamente indisponível.');}
  }
