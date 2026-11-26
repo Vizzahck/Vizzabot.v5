@@ -1,4 +1,4 @@
-import { downloadContentFromMessage } from '@whiskeysockets/baileys';
+import { downloadContentFromMessage, prepareWAMessageMedia, proto, generateMessageIDV2 } from '@whiskeysockets/baileys';
 import { spawn } from 'node:child_process';
 import { mkdtemp, writeFile, readFile, stat, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -62,3 +62,82 @@ export const restoredMedia=specs.map(([name,aliases,kinds,ext,filters])=>({
   finally{try{if(dir)await rm(dir,{recursive:true,force:true});}finally{busy=false;}}
  }
 }));
+
+
+// Sound stickers are experimental on rc14: the embedded AudioMessage is field 26.
+// Key by the unique encrypted upload hash, not by the image content, so identical
+// animations with different sounds cannot inherit each other's audio.
+const soundAttachments=new Map();
+let soundEncoderInstalled=false;
+function soundKey(message){
+ return message?.fileEncSha256?.length?Buffer.from(message.fileEncSha256).toString('base64'):null;
+}
+function installSoundEncoder(){
+ if(soundEncoderInstalled)return;
+ const codec=proto.Message.StickerMessage;
+ const original=codec.encode;
+ // If a future schema already supports audio, leave its encoder unchanged.
+ const probe=codec.fromObject({audioMessage:{seconds:1}});
+ if(codec.decode(codec.encode(probe).finish()).audioMessage){
+  soundEncoderInstalled=true;return;
+ }
+ codec.encode=function(message,writer){
+  const result=original.call(this,message,writer);
+  const audio=soundAttachments.get(soundKey(message));
+  if(audio)result.uint32(210).bytes(audio);
+  return result;
+ };
+ soundEncoderInstalled=true;
+}
+async function sendSoundSticker(ctx,sticker,audio){
+ if(typeof ctx.sock.waUploadToServer!=='function'||typeof ctx.sock.relayMessage!=='function')throw Error('Upload indisponível');
+ const options={upload:ctx.sock.waUploadToServer,logger:ctx.logger,mediaUploadTimeoutMs:30000};
+ const sound=await prepareWAMessageMedia({audio,mimetype:'audio/ogg; codecs=opus',ptt:false},options);
+ const visual=await prepareWAMessageMedia({sticker,mimetype:'image/webp',isAnimated:true,width:512,height:512},options);
+ const sm=visual.stickerMessage,am=sound.audioMessage;
+ if(!sm||!am||!soundKey(sm))throw Error('Mídia preparada inválida');
+ installSoundEncoder();
+ const key=soundKey(sm);
+ sm.audioMessage=am;
+ // Keep this attachment only while the message is being encrypted and relayed.
+ soundAttachments.set(key,proto.Message.AudioMessage.encode(am).finish());
+ try{await ctx.sock.relayMessage(ctx.chat,visual,{messageId:generateMessageIDV2(ctx.sock.user?.id)});}
+ finally{soundAttachments.delete(key);}
+}
+restoredMedia.push({
+ name:'ssom',aliases:['stickersom','figsom'],category:'Figurinhas',
+ description:'Cria figurinha animada com o som original do vídeo (experimental)',
+ async execute(ctx){
+  const s=source(ctx,['video']);
+  if(!s)return ctx.reply('Envie um vídeo com a legenda '+ctx.config.prefix+'ssom ou responda a um vídeo com esse comando.');
+  if(Number(s.media.fileLength)>LIMIT)return ctx.reply('Limite de vídeo: 8 MB.');
+  if(busy)return ctx.reply('Conversão em andamento. Tente novamente depois.');
+  busy=true;let dir;
+  try{
+   dir=await mkdtemp(join(tmpdir(),'vizzabot-ssom-'));
+   const input=join(dir,'input'),output=join(dir,'sound.webp'),audioPath=join(dir,'sound.ogg');
+   const stream=await downloadContentFromMessage(s.media,'video');
+   const chunks=[];let size=0;
+   for await(const chunk of stream){size+=chunk.length;if(size>LIMIT){stream.destroy?.();throw Error('Mídia grande');}chunks.push(chunk);}
+   await writeFile(input,Buffer.concat(chunks));
+   const base=['-nostdin','-hide_banner','-loglevel','error','-threads','1','-protocol_whitelist','file,pipe','-i',input,'-t','5'];
+   try{
+    await run([...base,'-map','0:a:0','-vn','-ac','1','-ar','48000','-c:a','libopus','-b:a','48k','-y',audioPath]);
+   }catch(e){return ctx.reply('Não consegui extrair o som. Use um vídeo com áudio e FFmpeg com suporte a Opus.');}
+   const sound=await readFile(audioPath);
+   if(sound.length<100||sound.length>128*1024)throw Error('Áudio inválido');
+   let visual;
+   // Reduce frame rate and quality until the animated sticker fits 500 KB.
+   for(const [fps,quality] of [[12,65],[10,45],[8,30],[6,18]]){
+    await run([...base,'-map','0:v:0','-an','-vf','fps='+fps+',scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000','-c:v','libwebp_anim','-lossless','0','-q:v',String(quality),'-loop','0','-y',output]);
+    const n=(await stat(output)).size;
+    if(n>0&&n<=500*1024){visual=await readFile(output);break;}
+   }
+   if(!visual)return ctx.reply('O vídeo ficou grande demais para uma figurinha. Tente um trecho mais simples.');
+   await sendSoundSticker(ctx,visual,sound);
+  }catch(e){
+   ctx.logger?.warn?.({command:'ssom',errorType:e.name},'Falha ao criar figurinha sonora');
+   await ctx.reply('Não consegui criar a figurinha com som. Verifique a versão do WhatsApp e os codecs WebP/Opus do FFmpeg.');
+  }finally{try{if(dir)await rm(dir,{recursive:true,force:true});}finally{busy=false;}}
+ }
+});
