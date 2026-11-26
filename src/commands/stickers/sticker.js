@@ -1,3 +1,4 @@
+import { renderSvg } from '../../core/svg.js';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -58,8 +59,7 @@ export const textStickerCommands=Array.from({length:6},(_,i)=>({
  const size=Math.min(58,Math.floor(360/lines.length));
  const colors=['#ffffff','#ffcf44','#62e5ff','#ff92cb','#a4ff9e','#d4b5ff'];
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">'+lines.map((line,j)=>'<text x="256" y="'+(256+(j-(lines.length-1)/2)*size*1.15)+'" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="'+size+'" fill="'+colors[i]+'" stroke="#111111" stroke-width="3" paint-order="stroke">'+escape(line)+'</text>').join('')+'</svg>';
- const {default:sharp}=await import('sharp');
- const sticker=await sharp(Buffer.from(svg)).webp({quality:85}).toBuffer();
+ const sticker=await renderSvg(svg,'webp');
  await ctx.sock.sendMessage(ctx.chat,{sticker});
  }
 }));
