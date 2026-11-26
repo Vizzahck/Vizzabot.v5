@@ -1,7 +1,7 @@
+import { renderSvg } from '../../core/svg.js';
 import { ownerState } from '../owner/restored.js';
 import { isPremium } from '../owner/personalization.js';
 import { randomInt } from 'node:crypto';
-import sharp from 'sharp';
 
 function premium(name,description,execute,aliases=[]){
  return {name,aliases,category:'Premium',description,async execute(ctx){
@@ -21,7 +21,7 @@ async function readPublic(url,max=512*1024){
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'})[c]);
 const decode=s=>s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]*>/g,'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 async function picture(ctx,svg,caption){
- await ctx.sock.sendMessage(ctx.chat,{image:await sharp(Buffer.from(svg)).png().toBuffer(),caption});
+ await ctx.sock.sendMessage(ctx.chat,{image:await renderSvg(svg),caption});
 }
 const wallpaperNames=[['walpaperanime',['wallpaperanime'],'Paisagem ilustrada'],['walpapertecnológico',['walpapertecnologico','wallpapertecnologico'],'Arte tecnológica'],['walpapergaming',['wallpapergaming'],'Arte pixel gaming']];
 export const premiumUtilities=[
