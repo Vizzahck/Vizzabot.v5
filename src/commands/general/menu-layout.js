@@ -3,9 +3,10 @@ import { readFile } from 'node:fs/promises';
 export const MENU_IMAGE = 'https://telegra.ph/file/cc8a2fd436377132c9b96.jpg';
 export const CATEGORY_ICONS={Geral:'🌐',Administração:'🛡️',Figurinhas:'🎨',Economia:'💎',Proprietário:'👑',Brincadeiras:'🎲',Menus:'📚',Ferramentas:'🧰',Jogos:'🎮',Downloads:'📥','Pesquisa e Downloads':'🔎',Logos:'🖼️',Premium:'⭐'};
 export function menuText(ctx,{category=null,title='CENTRAL DE COMANDOS'}={}){
+ const sharedTools=new Set(['livro','noticias','imgsearch','clima','ddd','qrcode','encurtalink','extrairtexto','tomp3','linkimg','videopralink','fazernick']);
  const sharedFun=new Set(['adivinha','ppt','dado','jogodavelha','forca','batalhar','modo-gamer']);
  const sharedPremium=new Set(['ddd','clima','qrcode','getquoted','extrairtexto','ping','gitclone']);
- const cmds=ctx.registry.list().filter(c=>(!c.ownerOnly||ctx.isOwner)&&(category?(c.category===category||(category==='Premium'&&sharedPremium.has(c.name))||(category==='Brincadeiras'&&sharedFun.has(c.name))):['Geral','Menus'].includes(c.category)));
+ const cmds=ctx.registry.list().filter(c=>(!c.ownerOnly||ctx.isOwner)&&(category?(c.category===category||(category==='Premium'&&sharedPremium.has(c.name))||(category==='Brincadeiras'&&sharedFun.has(c.name))||(category==='Ferramentas'&&sharedTools.has(c.name))):['Geral','Menus'].includes(c.category)));
  const showAliases=category==='Pesquisa e Downloads'||category==='Proprietário'||category==='Brincadeiras';
  const count=cmds.reduce((n,c)=>n+1+(showAliases?(c.aliases||[]).length:0),0);
  const groups=new Map();
