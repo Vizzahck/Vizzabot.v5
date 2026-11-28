@@ -1,9 +1,12 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, randomBytes, createHash } from 'node:crypto';
 import { initAdventure } from './adventure.js';
 import { groupRoles } from '../../core/group.js';
 
-const items=Object.freeze({ouro:8,gemas:35,reliquias:60,minerio:12});
+const items=Object.freeze({ouro:8,gemas:35,reliquias:60,minerio:12,cristais:45});
 function init(db){
+ db.exec("CREATE TABLE IF NOT EXISTS rpg_codes (digest TEXT PRIMARY KEY, expires INTEGER NOT NULL, redeemed_by TEXT)");
+ db.exec("CREATE TABLE IF NOT EXISTS rpg_challenges (chat TEXT NOT NULL, challenger TEXT NOT NULL, opponent TEXT NOT NULL, expires INTEGER NOT NULL, PRIMARY KEY(chat,opponent))");
+ db.exec("CREATE TABLE IF NOT EXISTS rpg_equipped (jid TEXT PRIMARY KEY, shield INTEGER NOT NULL DEFAULT 0)");
  initAdventure(db);
  db.exec("CREATE TABLE IF NOT EXISTS rpg_verified (jid TEXT PRIMARY KEY, verified_at INTEGER NOT NULL)");
  db.exec("CREATE TABLE IF NOT EXISTS group_modes (jid TEXT NOT NULL, mode TEXT NOT NULL, enabled INTEGER NOT NULL, PRIMARY KEY(jid,mode))");
@@ -35,18 +38,108 @@ const zones={
  floresta:{label:'Floresta',resources:()=>({ouro:randomInt(5,16)}),coins:()=>randomInt(15,61)},
  caverna:{label:'Caverna',resources:()=>({gemas:randomInt(1,4),minerio:randomInt(1,6)}),coins:()=>randomInt(15,46)},
  'ruinas antigas':{label:'Ruínas antigas',resources:()=>({reliquias:1,ouro:randomInt(3,9)}),coins:()=>randomInt(30,81)},
+ 'templo esquecido':{label:'Templo esquecido',resources:()=>({cristais:randomInt(1,3),reliquias:1}),coins:()=>randomInt(25,71)},
  'portal dimensional':{label:'Portal dimensional',resources:()=>({gemas:randomInt(1,3),reliquias:1}),coins:()=>randomInt(30,101)}
 };
 const fmtResources=resources=>Object.entries(resources).filter(([,n])=>n>0).map(([k,n])=>'+'+n+' '+k).join(' • ');
 const wait=ms=>'Aguarde '+Math.ceil(ms/60000)+' minuto(s) para tentar novamente.';
 async function explore(ctx,zone){
- const area=zones[zone];if(!area)return ctx.reply('Use '+ctx.config.prefix+'explorar floresta | caverna | ruínas antigas | portal dimensional');
+ const area=zones[zone];if(!area)return ctx.reply('Use '+ctx.config.prefix+'explorar floresta | caverna | ruínas antigas | portal dimensional | templo esquecido');
  const resources=area.resources(),coins=area.coins();
  const result=award(ctx.store.db,ctx.sender,'explorar',60*60000,{coins,xp:15,resources});
  return ctx.reply(result.ok?'🧭 '+area.label+'\n'+fmtResources(resources)+'\n+'+coins+' moedas • +15 XP\nSaldo: '+result.coins:wait(result.remaining));
 }
 const cmd=(name,description,execute,aliases=[])=>({name,aliases,category:'Economia',description,execute});
 export const restoredRpg=[
+ cmd('coletar-cristais','Coleta cristais na caverna (40% de chance)',async c=>{
+  const n=randomInt(100)<40?randomInt(1,4):0;
+  const r=award(c.store.db,c.sender,'coletar-cristais',30*60000,{resources:{cristais:n}});
+  await c.reply(!r.ok?wait(r.remaining):n?'💎 Você coletou '+n+' cristais preciosos.':'Nenhum cristal encontrado. Você ganhou 5 XP.');
+ }),
+ cmd('extrair-minerio','Extrai minério nas montanhas (50% de chance)',async c=>{
+  const n=randomInt(100)<50?randomInt(1,6):0;
+  const r=award(c.store.db,c.sender,'extrair-minerio',30*60000,{resources:{minerio:n}});
+  await c.reply(!r.ok?wait(r.remaining):n?'⛏️ Você extraiu '+n+' unidades de minério.':'Nenhum minério encontrado. Você ganhou 5 XP.');
+ }),
+ cmd('investigar','Investiga o templo esquecido',async c=>explore(c,'templo esquecido')),
+ cmd('encontrar','Explora o portal dimensional',async c=>explore(c,'portal dimensional')),
+ cmd('caçar','Aventura contra criaturas místicas',async c=>{
+  const r=award(c.store.db,c.sender,'cacada',60*60000,{coins:randomInt(30,91),xp:15,resources:{ouro:randomInt(3,11)}});
+  await c.reply(r.ok?'🐉 Aventura concluída! Você ganhou ouro, moedas e 15 XP. Saldo: '+r.coins:wait(r.remaining));
+ },['cacar']),
+ cmd('negociar','Negocia um recurso com o comerciante virtual',async c=>{
+  const item=normal(c.args[0]),n=Number(c.args[1]||1);
+  if(!Object.hasOwn(items,item)||!Number.isSafeInteger(n)||n<1||n>1000)return c.reply('Use '+c.config.prefix+'negociar ouro 5. Recursos: '+Object.keys(items).join(', '));
+  const price=items[item]*n;
+  const ok=transaction(c.store.db,()=>{
+   c.store.db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)').run(c.sender);
+   if(!consume(c.store.db,c.sender,item,n))return false;
+   c.store.db.prepare('UPDATE users SET coins=coins+? WHERE jid=?').run(price,c.sender);return true;
+  });
+  await c.reply(ok?'Comerciante: negócio fechado! +'+price+' moedas.':'Recursos insuficientes.');
+ }),
+ {...cmd('criarcodigorpg','Cria código de resgate de uso único (dono)',async c=>{
+  if(!c.isOwner)return c.reply('Somente o dono.');
+  if(c.chat.endsWith('@g.us'))return c.reply('Crie o código no privado.');
+  const db=c.store.db;init(db);
+  const code=randomBytes(12).toString('hex');
+  const digest=createHash('sha256').update(code).digest('hex');
+  db.prepare('INSERT INTO rpg_codes(digest,expires) VALUES (?,?)').run(digest,Date.now()+7*86400000);
+  await c.reply('Código RPG (uso único, válido 7 dias): '+code+'\nRecompensa: 100 moedas e 200 ouro.');
+ }),ownerOnly:true},
+ cmd('codigorpg','Resgata código RPG de uso único',async c=>{
+  if(c.chat.endsWith('@g.us'))return c.reply('Resgate o código no privado para não expô-lo.');
+  const code=String(c.args[0]||'').toLowerCase();
+  if(!/^[a-f0-9]{24}$/.test(code))return c.reply('Informe um código RPG válido.');
+  const digest=createHash('sha256').update(code).digest('hex'),db=c.store.db;
+  const ok=transaction(db,()=>{
+   const use=db.prepare('UPDATE rpg_codes SET redeemed_by=? WHERE digest=? AND redeemed_by IS NULL AND expires>?').run(c.sender,digest,Date.now());
+   if(!use.changes)return false;
+   db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)').run(c.sender);
+   db.prepare('UPDATE users SET coins=coins+100 WHERE jid=?').run(c.sender);
+   addItem(db,c.sender,'ouro',200);return true;
+  });
+  await c.reply(ok?'🎁 Código resgatado! +100 moedas e +200 ouro.':'Código inválido, vencido ou já resgatado.');
+ }),
+ cmd('batalhar','Desafio fictício de RPG com aceitação, sem apostas',async c=>{
+  if(!c.chat.endsWith('@g.us'))return c.reply('Somente em grupos.');
+  const db=c.store.db;init(db);const now=Date.now();
+  if(normal(c.args[0])==='aceitar'){
+   const result=transaction(db,()=>{
+    const match=db.prepare('SELECT * FROM rpg_challenges WHERE chat=? AND opponent=? AND expires>?').get(c.chat,c.sender,now);
+    if(!match)return {error:'Nenhum desafio válido.'};
+    db.prepare('DELETE FROM rpg_challenges WHERE chat=? AND opponent=?').run(c.chat,c.sender);
+    for(const jid of [match.challenger,c.sender]){
+     const last=db.prepare("SELECT last_used FROM adventure_cooldowns WHERE jid=? AND activity='batalhar'").get(jid)?.last_used||0;
+     if(last&&now-last<60*60000)return {error:'Um dos jogadores ainda está no intervalo de uma hora.'};
+    }
+    const winner=randomInt(2)?match.challenger:c.sender;
+    for(const jid of [match.challenger,c.sender]){
+     db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)').run(jid);
+     db.prepare("INSERT INTO adventure_cooldowns(jid,activity,last_used) VALUES (?,'batalhar',?) ON CONFLICT(jid,activity) DO UPDATE SET last_used=excluded.last_used").run(jid,now);
+     db.prepare('UPDATE users SET xp=xp+? WHERE jid=?').run(jid===winner?15:5,jid);
+    }
+    db.prepare('UPDATE users SET coins=coins+50 WHERE jid=?').run(winner);
+    addItem(db,winner,'ouro',50);return {winner};
+   });
+   if(result.error)return c.reply(result.error);
+   return c.sock.sendMessage(c.chat,{text:'🏆 Duelo RPG concluído! @'+result.winner.split('@')[0]+' ganhou 50 moedas, 50 ouro e 15 XP. O outro jogador ganhou 5 XP.',mentions:[result.winner]});
+  }
+  const target=c.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+  if(!target||target===c.sender)return c.reply('Use '+c.config.prefix+'batalhar @jogador. O jogador precisa aceitar.');
+  const group=await c.sock.groupMetadata(c.chat);
+  const norm=j=>String(j||'').replace(/:\d+(?=@)/,'');
+  const other=group.participants.find(p=>[p.id,p.lid,p.phoneNumber].some(j=>norm(j)===norm(target)));
+  const self=group.participants.find(p=>[p.id,p.lid,p.phoneNumber].some(j=>norm(j)===norm(c.sender)));
+  if(!other||other===self)return c.reply('Escolha outro membro do grupo.');
+  const opponent=other.id;
+  db.prepare('DELETE FROM rpg_challenges WHERE expires<=?').run(now);
+  const pending=db.prepare('SELECT 1 FROM rpg_challenges WHERE chat=? AND (challenger=? OR opponent=? OR challenger=? OR opponent=?)').get(c.chat,c.sender,c.sender,opponent,opponent);
+  if(pending)return c.reply('Já existe um desafio pendente. Ele expira em dois minutos.');
+  db.prepare('INSERT INTO rpg_challenges(chat,challenger,opponent,expires) VALUES (?,?,?,?)').run(c.chat,c.sender,opponent,now+120000);
+  await c.sock.sendMessage(c.chat,{text:'⚔️ @'+opponent.split('@')[0]+', você recebeu um desafio RPG. Use '+c.config.prefix+'batalhar aceitar em até 2 minutos.',mentions:[opponent]});
+ },['iniciar-batalha']),
+
  cmd('modo_rpg','Ativa ou desativa RPG no grupo (administrador)',async c=>{
   const roles=await groupRoles(c.sock,c.chat,c.sender,c.isOwner,c.isBotAdmin);
   if(!roles.group||!roles.admin)return c.reply('Somente administradores de grupos.');
