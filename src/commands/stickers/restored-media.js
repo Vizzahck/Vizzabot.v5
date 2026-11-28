@@ -6,15 +6,22 @@ import { join } from 'node:path';
 const LIMIT=8*1024*1024;
 let busy=false;
 const specs=[
+ ['grave2',[],['audio'],'mp3',['-af','aresample=44100,asetrate=33075,aresample=44100,atempo=1.3,alimiter=limit=0.7:level=0']],
+ ['bass2',[],['audio'],'mp3',['-af','equalizer=f=94:width_type=o:width=2:g=9,alimiter=limit=0.7:level=0']],
+ ['bass3',[],['audio'],'mp3',['-af','equalizer=f=40:width_type=o:width=2:g=9,alimiter=limit=0.7:level=0']],
+ ['estourar',[],['audio'],'mp3',['-af','volume=2,asoftclip=type=tanh,alimiter=limit=0.6:level=0']],
+ ['esquilo',[],['audio'],'mp3',['-af','aresample=44100,asetrate=65100,aresample=44100,atempo=0.8,alimiter=limit=0.7:level=0']],
+ ['vozmenino',[],['audio'],'mp3',['-af','aresample=44100,asetrate=55125,aresample=44100,atempo=0.85,alimiter=limit=0.7:level=0']],
+
  ['figcinza',[],['sticker','image'],'webp',['-frames:v','1','-vf','hue=s=0','-c:v','libwebp']],
  ['figespelho',[],['sticker','image'],'webp',['-frames:v','1','-vf','hflip','-c:v','libwebp']],
  ['toimg',['sticker2img'],['sticker'],'png',['-frames:v','1']],
  ['togif',[],['sticker','video'],'mp4',['-an','-vf','scale=480:-2:force_original_aspect_ratio=decrease','-c:v','libx264','-pix_fmt','yuv420p']],
  ['tomp3',['extrairaudio','videopraaudio'],['video','audio'],'mp3',['-vn','-c:a','libmp3lame']],
- ['grave',['grave2'],['audio'],'mp3',['-af','asetrate=44100*0.85,aresample=44100']],
+ ['grave',[],['audio'],'mp3',['-af','asetrate=44100*0.85,aresample=44100']],
  ['audiolento',['slow'],['audio'],'mp3',['-af','atempo=0.75']],
  ['audiorapido',['fast'],['audio'],'mp3',['-af','atempo=1.5']],
- ['bass',['bass2','bass3'],['audio'],'mp3',['-af','bass=g=6,alimiter=limit=0.8']],
+ ['bass',[],['audio'],'mp3',['-af','bass=g=6,alimiter=limit=0.8']],
  ['videocontrario',['reversevid'],['video'],'mp4',['-vf','scale=480:-2,reverse','-an']],
  ['videolento',['slowvid'],['video'],'mp4',['-vf','setpts=1.5*PTS','-an']],
  ['videorapido',['fastvid'],['video'],'mp4',['-vf','setpts=0.67*PTS','-an']],
