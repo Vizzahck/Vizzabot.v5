@@ -191,11 +191,7 @@ export const restoredRpg=[
   await c.reply(!r.ok?wait(r.remaining):success?'🏰 Missão concluída! +'+coins+' moedas, +10 ouro e +30 XP.':'A missão não deu certo desta vez. Você ganhou 5 XP pela experiência. Volte amanhã.');
  },['missao-epica','missão-épica']),
  cmd('rpgperfil','Consulta seu personagem e seus recursos',async c=>{
-  const db=c.store.db;init(db);
-  const u=c.store.user(c.sender);
-  const verified=!!db.prepare('SELECT 1 FROM rpg_verified WHERE jid=?').get(c.sender);
-  const shield=!!db.prepare('SELECT shield FROM rpg_equipped WHERE jid=?').get(c.sender)?.shield;
-  await c.reply('👤 PERFIL RPG'+(verified?' • Verificado':'')+'\nMoedas: '+u.coins+'\nXP: '+u.xp+'\nNível: '+(1+Math.floor(u.xp/100))+ '\nEscudo: '+(shield?'ativo':'inativo')+'\n'+Object.keys(items).map(k=>k+': '+quantity(db,c.sender,k)).join('\n'));
+  await c.reply(rpgProfileText(c));
  },['perfilrpg']),
  cmd('vender','Vende recursos do inventário por moedas virtuais',async c=>{
   const item=normal(c.args[0]),n=Number(c.args[1]||1);
@@ -230,3 +226,11 @@ export const restoredRpg=[
   await c.sock.sendMessage(c.chat,{text:'🏆 RANKING DE NÍVEL\n'+top.map((u,i)=>(i+1)+'. @'+u.jid.split('@')[0]+' — Nível '+(1+Math.floor(u.xp/100))+' | '+u.xp+' XP').join('\n'),mentions:top.map(u=>u.jid)});
  },['rl'])
 ];
+
+export function rpgProfileText(c){
+  const db=c.store.db;init(db);
+  const u=c.store.user(c.sender);
+  const verified=!!db.prepare('SELECT 1 FROM rpg_verified WHERE jid=?').get(c.sender);
+  const shield=!!db.prepare('SELECT shield FROM rpg_equipped WHERE jid=?').get(c.sender)?.shield;
+  return ('👤 PERFIL RPG'+(verified?' • Verificado':'')+'\nMoedas: '+u.coins+'\nXP: '+u.xp+'\nNível: '+(1+Math.floor(u.xp/100))+ '\nEscudo: '+(shield?'ativo':'inativo')+'\n'+Object.keys(items).map(k=>k+': '+quantity(db,c.sender,k)).join('\n'));
+}
