@@ -1,3 +1,4 @@
+import { restoredMedia } from './restored-media.js';
 import { renderSvg } from '../../core/svg.js';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { spawn } from 'node:child_process';
@@ -21,11 +22,15 @@ async function ffmpegWebp(buffer) {
 }
 
 export default {
-  name: 'sticker', aliases: ['s','f','sticker2','figurinha'], category: 'Figurinhas', description: 'Cria figurinha respondendo a uma foto ou com !s na legenda',
+  name: 'sticker', aliases: ['s','f','sticker2','figurinha'], category: 'Figurinhas', description: 'Cria figurinha de foto ou vídeo com legenda ou resposta',
   async execute(ctx) {
     const message = ctx.msg.message || {};
     const base = message.ephemeralMessage?.message || message;
     const quoted = base.extendedTextMessage?.contextInfo?.quotedMessage || base.imageMessage?.contextInfo?.quotedMessage || {};
+    if(base.videoMessage||quoted.videoMessage){
+      const videoCommand=restoredMedia.find(c=>c.name==='figvideo');
+      return videoCommand.execute(ctx);
+    }
     const source = base.imageMessage ? { ...ctx.msg, message: base } : quoted.imageMessage
       ? { key: { remoteJid: ctx.chat, id: base.extendedTextMessage?.contextInfo?.stanzaId, participant: base.extendedTextMessage?.contextInfo?.participant }, message: quoted }
       : null;
