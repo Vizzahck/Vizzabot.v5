@@ -1,5 +1,7 @@
 import { sendMenu } from './menu-layout.js';
 const menus = [
+  { name: 'menugeral', aliases: ['menuprincipal'], category: 'Geral', title: '🌐 GERAL' },
+  { name: 'menuferramentas', aliases: ['ferramentas'], category: 'Ferramentas', title: '🧰 FERRAMENTAS' },
   { name: 'menuadm', aliases: ['menuadmin'], category: 'Administração', title: '🛡️ ADMINISTRAÇÃO' },
   { name: 'menubrincadeiras', aliases: ['brincadeiras', 'brincadeira'], category: 'Brincadeiras', title: '🎲 BRINCADEIRAS' },
   { name: 'menurpg', aliases: ['menu-rpg'], category: 'Economia', title: '💰 RPG / ECONOMIA' },
