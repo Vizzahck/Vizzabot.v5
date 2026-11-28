@@ -48,8 +48,28 @@ export default {
 
 
 // Text stickers are generated locally; user text is escaped before SVG rendering.
+let animating=false;
+async function animateText(svg,colors,index){
+ if(animating)throw Error('Conversão em andamento');
+ animating=true;let dir;
+ try{
+  dir=await mkdtemp(join(tmpdir(),'vizza-attp-'));
+  for(let frame=0;frame<6;frame++){
+   await writeFile(join(dir,'frame-'+frame+'.png'),await renderSvg(svg.replaceAll('fill="'+colors[index]+'"','fill="'+colors[(index+frame)%colors.length]+'"')));
+  }
+  const output=join(dir,'output.webp');
+  await new Promise((resolve,reject)=>{
+   const p=spawn('ffmpeg',['-nostdin','-hide_banner','-loglevel','error','-framerate','6','-i',join(dir,'frame-%d.png'),'-frames:v','6','-c:v','libwebp_anim','-loop','0','-lossless','0','-q:v','65','-y',output],{stdio:'ignore'});
+   const timer=setTimeout(()=>p.kill('SIGKILL'),30000);
+   p.once('error',e=>{clearTimeout(timer);reject(e);});p.once('close',code=>{clearTimeout(timer);code===0?resolve():reject(Error('FFmpeg falhou'));});
+  });
+  const result=await readFile(output);
+  if(result.length>500*1024||!result.includes(Buffer.from('ANMF')))throw Error('Animação inválida');
+  return result;
+ }finally{try{if(dir)await rm(dir,{recursive:true,force:true});}finally{animating=false;}}
+}
 export const textStickerCommands=Array.from({length:6},(_,i)=>({
- name:i?'attp'+(i+1):'attp',category:'Figurinhas',description:'Cria figurinha de texto local',
+ name:i?'attp'+(i+1):'attp',category:'Figurinhas',description:'Cria figurinha animada de texto local',
  async execute(ctx){
  const value=ctx.args.join(' ').trim();
  if(!value||Array.from(value).length>80)return ctx.reply('Informe um texto de até 80 caracteres.');
@@ -59,7 +79,7 @@ export const textStickerCommands=Array.from({length:6},(_,i)=>({
  const size=Math.min(58,Math.floor(360/lines.length));
  const colors=['#ffffff','#ffcf44','#62e5ff','#ff92cb','#a4ff9e','#d4b5ff'];
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">'+lines.map((line,j)=>'<text x="256" y="'+(256+(j-(lines.length-1)/2)*size*1.15)+'" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="'+size+'" fill="'+colors[i]+'" stroke="#111111" stroke-width="3" paint-order="stroke">'+escape(line)+'</text>').join('')+'</svg>';
- const sticker=await renderSvg(svg,'webp');
- await ctx.sock.sendMessage(ctx.chat,{sticker});
+ if(animating)return ctx.reply('Outra figurinha animada está sendo gerada.');
+ try{const sticker=await animateText(svg,colors,i);await ctx.sock.sendMessage(ctx.chat,{sticker});}catch{await ctx.reply('Não consegui animar o texto; enviando versão estática.');const sticker=await renderSvg(svg,'webp');await ctx.sock.sendMessage(ctx.chat,{sticker});}
  }
 }));
