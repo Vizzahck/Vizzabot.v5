@@ -1,3 +1,4 @@
+import { restoredFun } from './fun/restored-v4.js';
 import { wordGameCommands } from './games/word-games.js';
 import { gameCatalog } from './games/catalog.js';
 import { restoredRpg } from './rpg/restored-v4.js';
@@ -54,7 +55,7 @@ import { v4QuickCommands } from './fun/v4-quick.js';
 import { practicalBatch } from './general/practical-batch.js';
 import { v4ExtraCommands } from './general/v4-extra-batch.js';
 import { dailyBatch } from './general/daily-batch.js';
-const allCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames, ...restoredMedia, ...textStickerCommands, ...stickerPacks, ...ownerRestored, ...personalization, ...ownerExtras, ...premiumSigns, ...premiumUtilities, ...restoredRpg, ...gameCatalog, ...wordGameCommands];
+const allCommands = [menu, comandos, ping, sobre, perfil, sticker, antilink, ban, boasvindas, avisos, saldo, diario, ranking, status, dado, moeda, ship, escolher, ball, simi, desligar, linkimg, extrairtexto, ...categoryMenus, ...groupTools, ...v4Fun, sorteio, ...economyTools, ...gameCommands, ...mediaCommands, ...ownerSettings, ...v4Utilities, ...extraGroupCommands, ...publicServices, ...warningCommands, ...adventureCommands, ...usefulV4Commands, ...mediaFilterCommands, ...wordFilterCommands, ...simpleV4Commands, ...utilityBatch2, ...utilityBatch3, ...v4QuickCommands, ...practicalBatch, ...v4ExtraCommands, ...dailyBatch, ...restoredGames, ...restoredMedia, ...textStickerCommands, ...stickerPacks, ...ownerRestored, ...personalization, ...ownerExtras, ...premiumSigns, ...premiumUtilities, ...restoredRpg, ...gameCatalog, ...wordGameCommands, ...restoredFun];
 
 // Keep existing registrations if a restored search name is already in use.
 const searchConflicts=allCommands.some(c=>c!==mediaCommands.find(m=>m.name==='ytsearch')&&[c.name,...(c.aliases||[])].includes('ytsearch'));
