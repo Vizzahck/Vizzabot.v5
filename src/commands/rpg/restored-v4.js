@@ -45,12 +45,37 @@ const fmtResources=resources=>Object.entries(resources).filter(([,n])=>n>0).map(
 const wait=ms=>'Aguarde '+Math.ceil(ms/60000)+' minuto(s) para tentar novamente.';
 async function explore(ctx,zone){
  const area=zones[zone];if(!area)return ctx.reply('Use '+ctx.config.prefix+'explorar floresta | caverna | ruínas antigas | portal dimensional | templo esquecido');
- const resources=area.resources(),coins=area.coins();
+ const db=ctx.store.db;init(db);
+ const resources=area.resources();
+ const bonus=(quantity(db,ctx.sender,'gema-da-sorte')?10:0)+(zone==='portal dimensional'&&quantity(db,ctx.sender,'chave-dimensional')?20:0);
+ const coins=area.coins()+bonus;
  const result=award(ctx.store.db,ctx.sender,'explorar',60*60000,{coins,xp:15,resources});
  return ctx.reply(result.ok?'🧭 '+area.label+'\n'+fmtResources(resources)+'\n+'+coins+' moedas • +15 XP\nSaldo: '+result.coins:wait(result.remaining));
 }
 const cmd=(name,description,execute,aliases=[])=>({name,aliases,category:'Economia',description,execute});
 export const restoredRpg=[
+ cmd('equipar-rpg','Ativa ou desativa o Escudo Místico',async c=>{
+  const db=c.store.db;init(db);
+  const state=normal(c.args[0]);
+  if(!['1','0','on','off'].includes(state))return c.reply('Use '+c.config.prefix+'equipar-rpg 1 para ativar o escudo ou 0 para desativar.');
+  const enabled=Number(state==='1'||state==='on');
+  if(enabled&&!quantity(db,c.sender,'escudo'))return c.reply('Compre o Escudo Místico na loja primeiro.');
+  db.prepare('INSERT INTO rpg_equipped(jid,shield) VALUES (?,?) ON CONFLICT(jid) DO UPDATE SET shield=excluded.shield').run(c.sender,enabled);
+  await c.reply('Escudo '+(enabled?'ativo':'inativo')+'.');
+ }),
+ cmd('usar-rpg','Usa uma poção de cura ou orbe arcano',async c=>{
+  const item=normal(c.args[0]);
+  if(!['pocao','orbe'].includes(item))return c.reply('Use '+c.config.prefix+'usar-rpg pocao | orbe');
+  const db=c.store.db;
+  const ok=transaction(db,()=>{
+   db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)').run(c.sender);
+   if(!consume(db,c.sender,item,1))return false;
+   db.prepare('UPDATE users SET coins=coins+?,xp=xp+? WHERE jid=?').run(item==='pocao'?30:0,item==='orbe'?30:0,c.sender);
+   return true;
+  });
+  await c.reply(ok?(item==='pocao'?'Poção utilizada: +30 moedas.':'Orbe utilizado: +30 XP.'):'Você não possui esse item.');
+ }),
+
  cmd('coletar-cristais','Coleta cristais na caverna (40% de chance)',async c=>{
   const n=randomInt(100)<40?randomInt(1,4):0;
   const r=award(c.store.db,c.sender,'coletar-cristais',30*60000,{resources:{cristais:n}});
@@ -117,13 +142,15 @@ export const restoredRpg=[
     for(const jid of [match.challenger,c.sender]){
      db.prepare('INSERT OR IGNORE INTO users(jid) VALUES (?)').run(jid);
      db.prepare("INSERT INTO adventure_cooldowns(jid,activity,last_used) VALUES (?,'batalhar',?) ON CONFLICT(jid,activity) DO UPDATE SET last_used=excluded.last_used").run(jid,now);
-     db.prepare('UPDATE users SET xp=xp+? WHERE jid=?').run(jid===winner?15:5,jid);
+     const shield=!!db.prepare('SELECT shield FROM rpg_equipped WHERE jid=?').get(jid)?.shield;
+     const xp=jid===winner?15+(quantity(db,jid,'espada')?5:0):5+(shield?5:0);
+     db.prepare('UPDATE users SET xp=xp+? WHERE jid=?').run(xp,jid);
     }
     db.prepare('UPDATE users SET coins=coins+50 WHERE jid=?').run(winner);
     addItem(db,winner,'ouro',50);return {winner};
    });
    if(result.error)return c.reply(result.error);
-   return c.sock.sendMessage(c.chat,{text:'🏆 Duelo RPG concluído! @'+result.winner.split('@')[0]+' ganhou 50 moedas, 50 ouro e 15 XP. O outro jogador ganhou 5 XP.',mentions:[result.winner]});
+   return c.sock.sendMessage(c.chat,{text:'🏆 Duelo RPG concluído! @'+result.winner.split('@')[0]+' ganhou 50 moedas, 50 ouro e XP. Ambos ganharam experiência; equipamentos podem adicionar bônus.',mentions:[result.winner]});
   }
   const target=c.msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
   if(!target||target===c.sender)return c.reply('Use '+c.config.prefix+'batalhar @jogador. O jogador precisa aceitar.');
@@ -131,8 +158,8 @@ export const restoredRpg=[
   const norm=j=>String(j||'').replace(/:\d+(?=@)/,'');
   const other=group.participants.find(p=>[p.id,p.lid,p.phoneNumber].some(j=>norm(j)===norm(target)));
   const self=group.participants.find(p=>[p.id,p.lid,p.phoneNumber].some(j=>norm(j)===norm(c.sender)));
-  if(!other||other===self)return c.reply('Escolha outro membro do grupo.');
-  const opponent=other.id;
+  if(!other||other===self||norm(other.id)===norm(c.sender))return c.reply('Escolha outro membro do grupo.');
+  const opponent=target;
   db.prepare('DELETE FROM rpg_challenges WHERE expires<=?').run(now);
   const pending=db.prepare('SELECT 1 FROM rpg_challenges WHERE chat=? AND (challenger=? OR opponent=? OR challenger=? OR opponent=?)').get(c.chat,c.sender,c.sender,opponent,opponent);
   if(pending)return c.reply('Já existe um desafio pendente. Ele expira em dois minutos.');
@@ -167,7 +194,8 @@ export const restoredRpg=[
   const db=c.store.db;init(db);
   const u=c.store.user(c.sender);
   const verified=!!db.prepare('SELECT 1 FROM rpg_verified WHERE jid=?').get(c.sender);
-  await c.reply('👤 PERFIL RPG'+(verified?' • Verificado':'')+'\nMoedas: '+u.coins+'\nXP: '+u.xp+'\nNível: '+(1+Math.floor(u.xp/100))+'\n'+Object.keys(items).map(k=>k+': '+quantity(db,c.sender,k)).join('\n'));
+  const shield=!!db.prepare('SELECT shield FROM rpg_equipped WHERE jid=?').get(c.sender)?.shield;
+  await c.reply('👤 PERFIL RPG'+(verified?' • Verificado':'')+'\nMoedas: '+u.coins+'\nXP: '+u.xp+'\nNível: '+(1+Math.floor(u.xp/100))+ '\nEscudo: '+(shield?'ativo':'inativo')+'\n'+Object.keys(items).map(k=>k+': '+quantity(db,c.sender,k)).join('\n'));
  },['perfilrpg']),
  cmd('vender','Vende recursos do inventário por moedas virtuais',async c=>{
   const item=normal(c.args[0]),n=Number(c.args[1]||1);
