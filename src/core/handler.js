@@ -99,6 +99,10 @@ export async function handleMessage(sock, msg, registry, config, logger, store, 
       const rpgMode=store.db.prepare("SELECT enabled FROM group_modes WHERE jid=? AND mode='rpg'").get(chat);
       if(rpgMode?.enabled===0)return reply('RPG desativado neste grupo. Um administrador pode ativar com '+config.prefix+'modo_rpg 1.');
     }
+    if(group && ['Brincadeiras','Jogos'].includes(command.category) && !['participarbrincadeiras','cancelarjogo','resetarvelha','revelarjogo','delvote'].includes(command.name)){
+      const mode=store.db.prepare("SELECT enabled FROM group_modes WHERE jid=? AND mode='modo-gamer'").get(chat);
+      if(mode?.enabled===0)return reply('Modo gamer desativado neste grupo. Um administrador pode ativar com '+config.prefix+'modo-gamer 1.');
+    }
     if(command.category==='Pesquisa e Downloads') {
       const progress={play:'🎵 Procurando áudio...',video:'🎬 Procurando vídeo...',mp4:'🎬 Procurando vídeo...',ytdoc:'🎵 Preparando documento de áudio...',tomp3:'🎧 Extraindo áudio...',gitclone:'📦 Buscando repositório...',album:'💿 Buscando informações do álbum...',videopralink:'🔗 Preparando vídeo...',topmusicas:'🎵 Consultando catálogo musical...'};
       await reply(progress[command.name]||'🔎 Buscando informações e processando seu pedido...').catch(()=>{});
