@@ -1,6 +1,14 @@
 // RPG gratuito, persistido no SQLite local, sem APIs externas.
 const fish=[['Sardinha',15,55],['Tilápia',25,35],['Dourado',65,9],['Peixe lendário',180,1]];
 const goods=[['vara',200,'Vara reforçada'],['bau',350,'Baú decorativo'],['coroa',1000,'Coroa do aventureiro']];
+export const magicGoods=[
+ ['pocao',20,'Poção de Cura','Recupera 30 moedas ao usar'],
+ ['espada',50,'Espada Encantada','Equipamento colecionável de combate'],
+ ['escudo',40,'Escudo Místico','Permite ativar proteção no perfil RPG'],
+ ['gema-da-sorte',30,'Gema da Sorte','Bônus em exploração'],
+ ['chave-dimensional',60,'Chave Dimensional','Bônus ao explorar o portal'],
+ ['orbe',80,'Orbe Arcano','Concede 30 XP ao usar']
+];
 const pick=(arr,random=Math.random)=>{const total=arr.reduce((n,x)=>n+x[2],0);let roll=random()*total;return arr.find(x=>(roll-=x[2])<0)||arr.at(-1);};
 export function initAdventure(db){
  db.exec(`CREATE TABLE IF NOT EXISTS adventure_cooldowns (jid TEXT NOT NULL, activity TEXT NOT NULL, last_used INTEGER NOT NULL, PRIMARY KEY(jid,activity));
@@ -32,6 +40,17 @@ export function purchaseItem(db,jid,item,price){
   db.exec('COMMIT');return true;
  }catch(err){db.exec('ROLLBACK');throw err;}
 }
+export function purchaseMagicItem(db,jid,item,price){
+ initAdventure(db);
+ if(!magicGoods.some(g=>g[0]===item&&g[1]===price))throw Error('Item inválido');
+ db.exec('BEGIN IMMEDIATE');
+ try{
+  const debit=db.prepare("UPDATE adventure_inventory SET quantity=quantity-? WHERE jid=? AND item='ouro' AND quantity>=?").run(price,jid,price);
+  if(!debit.changes){db.exec('COMMIT');return false;}
+  db.prepare('INSERT INTO adventure_inventory(jid,item,quantity) VALUES (?,?,1) ON CONFLICT(jid,item) DO UPDATE SET quantity=quantity+1').run(jid,item);
+  db.exec('COMMIT');return true;
+ }catch(e){db.exec('ROLLBACK');throw e;}
+}
 export const adventureCommands=[
  {name:'pescar',aliases:['pesca'],category:'Economia',description:'Pesca peixes e recebe moedas (20 min)',async execute(ctx){
   const caught=pick(fish);
@@ -46,11 +65,14 @@ export const adventureCommands=[
   await ctx.reply('🏴‍☠️ Você encontrou um tesouro!\n🪙 +'+reward+' moedas\n💰 Saldo: '+r.coins);
  }},
  {name:'loja',aliases:['lojinha'],category:'Economia',description:'Mostra itens disponíveis para compra',async execute(ctx){
-  await ctx.reply('🏪 *LOJA DO VIZZABOT*\n'+goods.map(([id,price,label])=>'• *'+id+'* — '+label+' — '+price+' moedas').join('\n')+'\n\nUse '+ctx.config.prefix+'comprar nome_do_item');
+  await ctx.reply('🏪 *LOJA MÁGICA DO VIZZABOT*\n'+magicGoods.map(([id,price,label,effect],i)=>(i+1)+'. '+label+' — '+price+' ouro\n   '+effect).join('\n')+'\n\n*Itens da V5*\n'+goods.map(([id,price,label])=>'• '+id+' — '+label+' — '+price+' moedas').join('\n')+'\n\nUse '+ctx.config.prefix+'comprar número ou nome_do_item');
  }},
  {name:'comprar',aliases:['buy'],category:'Economia',description:'Compra item da loja usando moedas',async execute(ctx){
-  const item=ctx.args[0]?.toLowerCase();const product=goods.find(x=>x[0]===item);
-  if(!product)return ctx.reply('Uso: '+ctx.config.prefix+'comprar vara | bau | coroa');
+  const item=ctx.args[0]?.toLowerCase();
+  const magic=/^[1-6]$/.test(item||'')?magicGoods[Number(item)-1]:magicGoods.find(x=>x[0]===item);
+  if(magic){const ok=purchaseMagicItem(ctx.store.db,ctx.sender,magic[0],magic[1]);return ctx.reply(ok?'🛍️ Você comprou '+magic[2]+'!':'Ouro insuficiente.');}
+  const product=goods.find(x=>x[0]===item);
+  if(!product)return ctx.reply('Uso: '+ctx.config.prefix+'comprar 1–6 | vara | bau | coroa');
   const ok=purchaseItem(ctx.store.db,ctx.sender,product[0],product[1]);
   await ctx.reply(ok?'🛍️ Você comprou *'+product[2]+'*!':'💸 Saldo insuficiente.');
  }},
