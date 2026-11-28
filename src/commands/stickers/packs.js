@@ -18,6 +18,26 @@ async function fallback(name){
  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect x="25" y="100" width="462" height="312" rx="52" fill="'+bg+'"/><circle cx="256" cy="145" r="26" fill="'+fg+'"/><path d="M238 145 L250 157 L275 131" stroke="'+bg+'" stroke-width="7" fill="none"/><text x="256" y="255" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="'+Math.min(58,Math.floor(600/text.length))+'" font-weight="bold" fill="'+fg+'">'+text+'</text><text x="256" y="340" text-anchor="middle" font-family="sans-serif" font-size="24" fill="white">VIZZABOT</text></svg>';
  return renderSvg(svg,'webp');
 }
+
+// Bundled WebP files are kept in base64 JSON so ordinary git pulls install them.
+let bundledCache;
+async function bundled(){
+ if(bundledCache)return bundledCache;
+ const result=[];
+ for(const file of ['helen-01.json','helen-02.json']){
+  try{
+   const data=JSON.parse(await readFile(new URL('../../../assets/sticker-packs/'+file,import.meta.url),'utf8'));
+   for(const item of data.stickers){
+    if(typeof item.base64!=='string'||item.base64.length>140000)continue;
+    const b=Buffer.from(item.base64,'base64');
+    if(b.length>=20&&b.length<=100*1024&&b.toString('ascii',0,4)==='RIFF'&&b.toString('ascii',8,12)==='WEBP'&&b.readUInt32LE(4)+8===b.length)result.push(b);
+   }
+  }catch{/* Optional packs: keep local fallback available. */}
+ }
+ if(result.length)bundledCache=result;
+ return result;
+}
+
 let busy=false;
 export const stickerPacks=packs.map(name=>({
  name,aliases:name==='figurinhas'?[]:[...(name==='zinitsu'?['zenitsu']:[]),'fig-'+name,'fig'+name,'fig-'+name+'s','fig'+name+'s',...(name==='anime'?['figuanime']:[])],
@@ -31,16 +51,20 @@ export const stickerPacks=packs.map(name=>({
    const dir=join(process.cwd(),'assets','sticker-packs',name);
    const files=await readdir(dir,{withFileTypes:true}).catch(()=>[]);
    const choices=files.filter(f=>f.isFile()&&/^[a-zA-Z0-9_.-]+\.webp$/i.test(f.name));
-   if(!choices.length)await ctx.reply('Pack original não instalado. Enviando figurinhas temáticas geradas localmente.');
+   const ready=['anime','figurinhas'].includes(name)?[...await bundled()]:[];
+   if(!choices.length&&!ready.length)await ctx.reply('Pack original não instalado. Enviando figurinhas temáticas geradas localmente.');
    for(let i=0;i<count;i++){
     let sticker;
     if(choices.length){
      const p=join(dir,choices.splice(randomInt(choices.length),1)[0].name);
      if((await stat(p)).size<=1024*1024){const b=await readFile(p);if(b.toString('ascii',0,4)==='RIFF'&&b.toString('ascii',8,12)==='WEBP')sticker=b;}
     }
+    if(!sticker&&ready.length)sticker=ready.splice(randomInt(ready.length),1)[0];
     sticker??=await fallback(name);
     await ctx.sock.sendMessage(ctx.chat,{sticker},{quoted:ctx.msg});
    }
   }finally{busy=false;}
  }
 }));
+
+stickerPacks.push({name:'creditosfig',aliases:['creditosfigurinhas'],category:'Figurinhas',description:'Créditos e licenças dos packs',async execute(ctx){await ctx.reply('Helen INBT — INHABITANTS\\nFigurinhas originais sem modificações, licença CC BY 4.0.\\nFonte: https://github.com/inhabitants/stickers\\nLicença: https://creativecommons.org/licenses/by/4.0/');}});
